@@ -191,7 +191,7 @@ class ytvideos(object):
             # Grab 1 page of results from YouTube at a time
             playlist_snippet = self.youtube.playlistItems().list(
                 playlistId=playlistId, part='snippet',
-                maxResults=1, pageToken=next_page_token
+                maxResults=50, pageToken=next_page_token
                 ).execute()
 
             # Loop through results and populate dictionary
