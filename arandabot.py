@@ -37,7 +37,7 @@ def arandabot(settings=None):
         try:
             yt = ytvideos.ytvideos(settings=yt_settings,
                                    no_older_than=min_date)
-        except ytvideos.HttpError:#YTHttpError:
+        except ytvideos.HttpError:
             print("There was an HTTP error trying to login to YouTube. "
                   "Trying again!")
         else:

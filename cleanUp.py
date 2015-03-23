@@ -1,7 +1,7 @@
 '''
 Created on 11 Jan 2015
 
-@author: Damian
+@author: Damian Shaw
 '''
 import botsettings
 import redditsubmissions
