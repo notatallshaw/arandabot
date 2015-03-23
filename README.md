@@ -24,6 +24,6 @@ To get this bot working, do the following:
   * pip install google-api-python-client
   * pip install praw
 
-5. Run main.py and get oauth2 webtoken
+5. Run main.py in your terminal or windows command prompt (you you can copy the output) and get oauth2 webtoken
   * The console will output a Google web page you need to go to and grab the token
   * Copy and paste the token back in to console
