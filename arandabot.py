@@ -50,7 +50,6 @@ def arandabot(settings=None):
     # script logic
     loop_number = script_settings.number_of_loops
     while script_settings.loop_forever or loop_number > 0:
-        print(loop_number)
         loop_number -= 1
 
         yt.getNewsestVideos()
