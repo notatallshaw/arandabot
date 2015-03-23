@@ -1,0 +1,20 @@
+{
+	"reddit": {
+		"username": "",
+		"password": "",
+		"subreddit": "sandboxtest",
+		"ua": "hello i be a bot",
+		"praw_block_size": 100
+	},
+	"youtube": {
+	    "subscriptions": true,
+		"accounts": ["michaelaranda","WhatImDoingRightNow","WhatImPwningRightNow"],
+		"days_newer_than": 1
+	},
+	"script": {
+		"repost_protection": true,
+		"loop_forever": true,
+		"number_of_loops": 0,
+		"seconds_to_sleep": 30
+	}
+}
