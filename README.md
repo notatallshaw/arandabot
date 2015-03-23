@@ -20,7 +20,7 @@ To get this bot working, do the following:
   * Click "Download JSON"
   * Name file "client_secrets.json" and put in same directory as the bot
 
-4. Install praw and Google Python API:
+4. Install praw and Google Python API: # Possibly removed need for this step, will test in next couple of days
   * pip install google-api-python-client
   * pip install praw
 
