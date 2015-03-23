@@ -4,7 +4,7 @@ A youtube to reddit bot based on youtube API v3
 To get this bot working, do the following:
 
 1. Go in to the settings.json file and update the following information:
- * You Reddit Username and Password
+ * Your Reddit Username and Password
  * Which youtube channels you would like to add
  * If you would like the bot to pull all your subscribed channels
  * If you would like to the bot to loop forever or pull n times
