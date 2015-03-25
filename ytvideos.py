@@ -232,7 +232,7 @@ class ytvideos(object):
         for channel, play_list_id in self.channel_to_upload_ids.items():
             try:
                 self.getChannelNewestVideo(playlistId=play_list_id)
-            except HttpError:
-                print("There was some HTTP Error when trying to connect to "
-                      "the YouTube Channel " + channel + " and will not be "
-                      "updated on this loop")
+            except HttpError,e:
+                print("HttpError " + e.resp.status +
+                      " occurred when polling Channel" + channel +
+                      "\nDetails:\n" + e.content)
