@@ -233,6 +233,6 @@ class ytvideos(object):
             try:
                 self.getChannelNewestVideo(playlistId=play_list_id)
             except HttpError,e:
-                print("HttpError " + e.resp.status +
-                      " occurred when polling Channel" + channel +
-                      "\nDetails:\n" + e.content)
+                print("HttpError " + str(e.resp.status) +
+                      " occurred when polling Channel " + channel +
+                      "\nDetails:\n" + str(e.content))
