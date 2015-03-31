@@ -51,18 +51,16 @@ def arandabot(settings=None):
     while script_settings.loop_forever or loop_number > 0:
         loop_number -= 1
 
-        yt.getNewsestVideos()
-        if not yt.records:
-            continue
+        yt.getNewestVideos()
 
-        if script_settings.repost_protection:
-            r.getYouTubeURLs(no_older_than=min_date)
-            yt.delKeys(r.records)
-            if not yt.records:
-                continue
+        if yt.records:
+            if script_settings.repost_protection:
+                r.getYouTubeURLs(no_older_than=min_date)
+                yt.delKeys(r.records)
 
-        for YTid in sorted(yt.records, key=lambda k: yt.records[k].date):
-            r.submitContent(title=yt.records[YTid].title,
-                            link='https://www.youtube.com/watch?v='+YTid)
+            for YTid in sorted(yt.records, key=lambda k: yt.records[k].date):
+                r.submitContent(title=yt.records[YTid].title,
+                                link='https://www.youtube.com/watch?v='+YTid)
 
+        min_date = datetime.today()
         time.sleep(script_settings.seconds_to_sleep)
