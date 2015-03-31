@@ -71,7 +71,8 @@ class redditsubmissions(object):
         try:
             subr.submit(title, url=link)
         except praw.errors.APIException:
-            print "Unable to submit URL " + link + ", got API error"
+            print("API error [", err.error_type), "]:", err.message,
+                "while submitting ", link)
         else:
             print "Successfully submitted " + title
 
