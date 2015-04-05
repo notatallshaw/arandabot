@@ -70,9 +70,9 @@ class redditsubmissions(object):
         subr = self.reddit.get_subreddit(self.set.subreddit)
         try:
             subr.submit(title, url=link)
-        except praw.errors.APIException:
-            print("API error [", err.error_type), "]:", err.message,
-                "while submitting ", link)
+        except praw.errors.APIException, e:
+            print("API error [" + e.error_type + "]:" + e.message +
+                  "while submitting " + link)
         else:
             print "Successfully submitted " + title
 

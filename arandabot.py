@@ -38,7 +38,8 @@ def arandabot(settings=None):
             yt = ytvideos.ytvideos(settings=yt_settings,
                                    no_older_than=min_date)
         except ytvideos.HttpError, e:
-            print("An HTTP error %d occurred:\n%s" % (e.resp.status, e.content))
+            print("An HTTP error %d occurred:\n%s" %
+                  (e.resp.status, e.content))
         else:
             print("Successfully logged in to and got channel information "
                   "for YouTube")
@@ -51,7 +52,7 @@ def arandabot(settings=None):
     while script_settings.loop_forever or loop_number > 0:
         loop_number -= 1
 
-        yt.getNewestVideos()
+        yt.getNewestVideos(yt_settings)
 
         if yt.records:
             if script_settings.repost_protection:

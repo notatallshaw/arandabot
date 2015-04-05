@@ -12,15 +12,15 @@ try:
     from apiclient.discovery import build
     from apiclient.errors import HttpError
     from apiclient.http import BatchHttpRequest
+    from oauth2client.client import flow_from_clientsecrets
+    from oauth2client.file import Storage
+    from oauth2client.tools import run_flow, argparser
 except ImportError:
     print("Can't find google-api-python-client please insstall. \n"
           "On Windows this would look something like: \n"
           "C:\Python27\Scripts>pip2.7.exe install google-api-python-client")
     raise
 
-from oauth2client.client import flow_from_clientsecrets
-from oauth2client.file import Storage
-from oauth2client.tools import run_flow, argparser
 from collections import namedtuple
 from datetime import datetime
 
@@ -67,7 +67,7 @@ class ytvideos(object):
         self.playlist_min_date = self.populateMinDates(
             play_list_ids=self.channel_to_upload_ids.values(),
             min_date=no_older_than
-        ) 
+        )
         self.playlist_latest = self.populateMinDates(
             play_list_ids=self.channel_to_upload_ids.values(),
             min_date=no_older_than
@@ -242,24 +242,25 @@ class ytvideos(object):
         for channel, play_list_id in self.channel_to_upload_ids.items():
             try:
                 self.getChannelNewestVideo(playlistId=play_list_id)
-            except HttpError,e:
+            except HttpError, e:
                 print("HttpError " + str(e.resp.status) +
                       " occurred when polling Channel " + channel +
                       "\nDetails:\n" + str(e.content))
 
     def getChannelNewestVideosCallback(self, request_id, response, exception):
-        if exception is not None :
+        if exception is not None:
             raise exception
-        else :
+        else:
             # Loop through results and add new videos to queue
             number_of_new_videos = 0
             keep_going = True
 
             # Sort, in case the playlist is not in reverse chronological order
             for item in sorted(response['items'],
-                    key=lambda item:\
-                    datetime.strptime(item['snippet']["publishedAt"],
-                    "%Y-%m-%dT%H:%M:%S.000Z"), reverse=True):
+                               key=lambda item:
+                               datetime.strptime(item['snippet']["publishedAt"],
+                                                 "%Y-%m-%dT%H:%M:%S.000Z"),
+                               reverse=True):
 
                 snippet = item["snippet"]
                 pid = snippet["playlistId"]
@@ -272,14 +273,14 @@ class ytvideos(object):
                         published <= self.playlist_min_date[pid]):
                     keep_going = False
                 else:
+                    number_of_new_videos += 1
                     YTid = snippet["resourceId"]["videoId"]
                     title = snippet["title"]
                     date = snippet["publishedAt"]
-                    self.playlist_latest[pid] = published \
-                        if published.date()>self.playlist_latest[pid].date() \
-                        else self.playlist_latest[pid]
-                    self.q.put([YTid,self.record(title=title, date=date)])
-                    number_of_new_videos += 1
+                    self.q.put([YTid, self.record(title=title, date=date)])
+
+                    if published > self.playlist_latest[pid]:
+                        self.playlist_latest[pid] = published
 
                 if not keep_going:
                     self.playlist_min_date[pid] = self.playlist_latest[pid]
@@ -288,17 +289,24 @@ class ytvideos(object):
                               " new videos from channel: " + channelTitle)
                     break
 
-    def getNewestVideos(self):
+    def getNewestVideos(self, settings):
+        # Temporary fix to overcome oauth expiries, should only call once oauth
+        # is expired (to be fixed)
+        self.youtube = self.initilize_youtube(settings)
+
+        # When subscription count is large it's important to batch all the
+        # HTTP requests together as 1 http request. This will break if
+        # Channel list is > 1000 (to be fixed)
         batch = BatchHttpRequest(callback=self.getChannelNewestVideosCallback)
-        for channel, play_list_id in self.channel_to_upload_ids.items():
+        for play_list_id in self.channel_to_upload_ids.values():
             batch.add(self.youtube.playlistItems().list(
-                part='snippet',maxResults=50,playlistId=play_list_id))
+                part='snippet', maxResults=50, playlistId=play_list_id))
         batch.execute()
 
         counter = 0
         while not self.q.empty():
             try:
-                [YTid,record] = self.q.get()
+                [YTid, record] = self.q.get()
                 self.records[YTid] = record
                 counter += 1
             except:
