@@ -16,7 +16,7 @@ class botsettings(object):
         self.script = self.scriptSettings(settings)
 
     def loadsettingsfromfile(self, settingsFile):
-        with open(settingsFile, "r") as f:
+        with open(settingsFile, "rU") as f:
             try:
                 settingStr = f.read()
             except IOError:

@@ -6,19 +6,21 @@ Created on 12 Jan 2015
 
 import httplib2
 import os
+import Queue
 
 try:
     from apiclient.discovery import build
     from apiclient.errors import HttpError
+    from apiclient.http import BatchHttpRequest
+    from oauth2client.client import flow_from_clientsecrets
+    from oauth2client.file import Storage
+    from oauth2client.tools import run_flow, argparser
 except ImportError:
     print("Can't find google-api-python-client please insstall. \n"
           "On Windows this would look something like: \n"
           "C:\Python27\Scripts>pip2.7.exe install google-api-python-client")
     raise
 
-from oauth2client.client import flow_from_clientsecrets
-from oauth2client.file import Storage
-from oauth2client.tools import run_flow, argparser
 from collections import namedtuple
 from datetime import datetime
 
@@ -42,6 +44,10 @@ class ytvideos(object):
         self.records = {}
         self.record = namedtuple('record', ['title', 'date'])
 
+        # FIFO queue used by callbacks to temporary store video info
+        # before upload, youtubeId needs to be held alongside
+        self.q = Queue.Queue()
+
         # Login to YouTube using the Google provided API
         self.youtube = self.initilize_youtube(settings)
         print('Successfully authenticated against YouTube')
@@ -59,6 +65,10 @@ class ytvideos(object):
         # playlist date increases, this is the min date to check against
         # each playlist
         self.playlist_min_date = self.populateMinDates(
+            play_list_ids=self.channel_to_upload_ids.values(),
+            min_date=no_older_than
+        )
+        self.playlist_latest = self.populateMinDates(
             play_list_ids=self.channel_to_upload_ids.values(),
             min_date=no_older_than
         )
@@ -232,7 +242,74 @@ class ytvideos(object):
         for channel, play_list_id in self.channel_to_upload_ids.items():
             try:
                 self.getChannelNewestVideo(playlistId=play_list_id)
-            except HttpError,e:
+            except HttpError, e:
                 print("HttpError " + str(e.resp.status) +
                       " occurred when polling Channel " + channel +
                       "\nDetails:\n" + str(e.content))
+
+    def getChannelNewestVideosCallback(self, request_id, response, exception):
+        if exception is not None:
+            print(exception)
+        else:
+            # Loop through results and add new videos to queue
+            number_of_new_videos = 0
+            keep_going = True
+
+            # Sort, in case the playlist is not in reverse chronological order
+            for item in sorted(response['items'],
+                               key=lambda item:
+                               datetime.strptime(item['snippet']["publishedAt"],
+                                                 "%Y-%m-%dT%H:%M:%S.000Z"),
+                               reverse=True):
+
+                snippet = item["snippet"]
+                pid = snippet["playlistId"]
+                channelTitle = snippet["channelTitle"]
+                published = datetime.strptime(snippet["publishedAt"],
+                                              "%Y-%m-%dT%H:%M:%S.000Z")
+
+                # Check if the video is older than the filter date
+                if (self.playlist_min_date[pid] is not None and
+                        published <= self.playlist_min_date[pid]):
+                    keep_going = False
+                else:
+                    number_of_new_videos += 1
+                    YTid = snippet["resourceId"]["videoId"]
+                    title = snippet["title"]
+                    date = snippet["publishedAt"]
+                    self.q.put([YTid, self.record(title=title, date=date)])
+
+                    # Update latest published timestamp for that playlistId
+                    if published > self.playlist_latest[pid]:
+                        self.playlist_latest[pid] = published
+
+                if not keep_going:
+                    self.playlist_min_date[pid] = self.playlist_latest[pid]
+                    if number_of_new_videos:
+                        print("Got " + str(number_of_new_videos) +
+                              " new videos from channel: " + channelTitle)
+                    break
+
+    def getNewestVideos(self, settings):
+        # Temporary fix to overcome oauth expiries, should only call once oauth
+        # is expired (to be fixed)
+        self.youtube = self.initilize_youtube(settings)
+
+        # When subscription count is large it's important to batch all the
+        # HTTP requests together as 1 http request. This will break if
+        # Channel list is > 1000 (to be fixed)
+        batch = BatchHttpRequest(callback=self.getChannelNewestVideosCallback)
+        for play_list_id in self.channel_to_upload_ids.values():
+            batch.add(self.youtube.playlistItems().list(
+                part='snippet', maxResults=50, playlistId=play_list_id))
+        batch.execute()
+
+        counter = 0
+        while not self.q.empty():
+            try:
+                [YTid, record] = self.q.get()
+                self.records[YTid] = record
+                counter += 1
+            except:
+                break
+        print "%d videos ready to upload" % counter
