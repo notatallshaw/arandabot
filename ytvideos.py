@@ -249,7 +249,7 @@ class ytvideos(object):
 
     def getChannelNewestVideosCallback(self, request_id, response, exception):
         if exception is not None:
-            raise exception
+            print(exception)
         else:
             # Loop through results and add new videos to queue
             number_of_new_videos = 0
@@ -279,6 +279,7 @@ class ytvideos(object):
                     date = snippet["publishedAt"]
                     self.q.put([YTid, self.record(title=title, date=date)])
 
+                    # Update latest published timestamp for that playlistId
                     if published > self.playlist_latest[pid]:
                         self.playlist_latest[pid] = published
 
