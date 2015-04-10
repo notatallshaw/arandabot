@@ -3,6 +3,8 @@ Created on 13 Jan 2015
 
 @author: Damian Shaw
 '''
+
+import time
 from re import sub
 from urlparse import urlparse, parse_qs
 from collections import namedtuple
@@ -25,13 +27,18 @@ class redditsubmissions(object):
     def getReddit(self):
         """Get a reference to Reddit."""
         r = praw.Reddit(user_agent=self.set.ua)
-        try:
-            r.login(self.set.username, self.set.password)
-        except:
-            print("Failed to login to Reddit")
-            raise
-        else:
-            return r
+        while True:
+            try:
+                r.login(self.set.username, self.set.password)
+            except praw.requests.exceptions.HTTPError, e:
+                print("While trying to login to Reddit HTTPError "
+                      " %d occurred:\n%s" % (e.resp.status, e.content))
+                time.sleep(15)
+            except:
+                print("Failed to login to Reddit")
+                raise
+            else:
+                return r
 
     def appendYTPost(self, YTid=None, date=None):
         """Add to a collection of YouTube Posts made in this subreddit"""
@@ -71,10 +78,10 @@ class redditsubmissions(object):
         try:
             subr.submit(title, url=link)
         except praw.errors.APIException, e:
-            print("API error [" + e.error_type + "]:" + e.message +
-                  "while submitting " + link)
+            print("API error [ %s ]: %s while submitting %s" %
+                  (e.error_type, e.message, link))
         else:
-            print "Successfully submitted " + title
+            print("Successfully submitted %s" % title)
 
     def deleteAllPosts(self):
         subr = self.reddit.get_subreddit(self.set.subreddit)
@@ -82,7 +89,7 @@ class redditsubmissions(object):
             try:
                 submission.delete()
             except:
-                print "Failed to delete: " + str(submission)
+                print("Failed to delete: %s" % submission)
             else:
-                print "Succeeded deleting: " + str(submission)
-        print "Done!"
+                print("Succeeded deleting: %s" % submission)
+        print("Done!")

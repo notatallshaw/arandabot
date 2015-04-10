@@ -7,6 +7,7 @@ Created on 12 Jan 2015
 import httplib2
 import os
 import Queue
+import time
 
 try:
     from apiclient.discovery import build
@@ -24,7 +25,7 @@ except ImportError:
 from collections import namedtuple
 from datetime import datetime
 
-__all__ = ('ytvideos', 'HttpError')
+__all__ = ('ytvideos')
 
 
 class ytvideos(object):
@@ -112,9 +113,16 @@ class ytvideos(object):
         if credentials is None or credentials.invalid:
             credentials = run_flow(flow, storage, args)
 
-        youtube = build(yt_api_service_name,
-                        yt_api_version,
-                        http=credentials.authorize(httplib2.Http()))
+        while True:
+            try:
+                youtube = build(yt_api_service_name, yt_api_version,
+                                http=credentials.authorize(httplib2.Http()))
+            except HttpError, e:
+                print("While logging in to YouTubeaAn HTTP error"
+                      "%d occurred:\n%s" % (e.resp.status, e.content))
+                time.sleep(1)
+            else:
+                break
 
         return youtube
 
@@ -136,7 +144,7 @@ class ytvideos(object):
     def getUserUploadPlayLists(self):
         '''Get user playlists defined in the settings file'''
         for account in self.set.accounts:
-            print("Getting information for channel: " + account)
+            print("Getting information for channel: %s" % account)
             channels_response = self.youtube.channels().list(
                 forUsername=account,
                 part='contentDetails'
@@ -148,8 +156,8 @@ class ytvideos(object):
                         item['contentDetails']['relatedPlaylists']['uploads']
                     self.channel_to_upload_ids[channel_id] = upload_id
             except KeyError:
-                print("There were no channels in the youtube account "
-                      + account)
+                print("There were no channels in the youtube account %s"
+                      % account)
 
     def getSubscriptionUploadPlayLists(self):
         # Get playlists from the users subscribed channels
@@ -164,7 +172,7 @@ class ytvideos(object):
 
             for item in subscriber_items["items"]:
                 channel_ids.append(item["snippet"]["resourceId"]["channelId"])
-                print("From subscriptions adding channel: " +
+                print("From subscriptions adding channel: %s" %
                       item["snippet"]["title"])
 
             # API only accepts at most 50 item IDs
@@ -188,64 +196,6 @@ class ytvideos(object):
             except KeyError:
                 # Reached end of list
                 break
-
-    def getChannelNewestVideo(self, playlistId=None):
-        next_page_token = None
-        keep_going = True
-        number_of_new_videos = 0
-        # Get current playlist min date as the function can update
-        # this value
-        current_playlist_min_date = self.playlist_min_date[playlistId]
-
-        while True:
-            # Grab 1 page of results from YouTube at a time
-            playlist_snippet = self.youtube.playlistItems().list(
-                playlistId=playlistId, part='snippet',
-                maxResults=50, pageToken=next_page_token
-                ).execute()
-
-            # Loop through results and populate dictionary
-            for item in playlist_snippet["items"]:
-                snippet = item["snippet"]
-                channelTitle = snippet["channelTitle"]
-                published = datetime.strptime(snippet["publishedAt"],
-                                              "%Y-%m-%dT%H:%M:%S.000Z")
-
-                # Check if the video is older than the filter date
-                if (current_playlist_min_date is not None and
-                        published <= current_playlist_min_date):
-                    keep_going = False
-                else:
-                    YTid = snippet["resourceId"]["videoId"]
-                    title = snippet["title"]
-                    date = snippet["publishedAt"]
-                    self.records[YTid] = self.record(title=title, date=date)
-                    number_of_new_videos += 1
-
-                # Check if the playlist min date can be increased
-                if (self.playlist_min_date[playlistId] is None or
-                        published > self.playlist_min_date[playlistId]):
-                    self.playlist_min_date[playlistId] = published
-
-            if not keep_going:
-                if number_of_new_videos:
-                    print("Got " + str(number_of_new_videos) +
-                          " new videos from channel: " + channelTitle)
-                break
-            try:
-                next_page_token = playlist_snippet['nextPageToken']
-            except KeyError:
-                # Reached end of list
-                break
-
-    def getNewsestVideos(self):
-        for channel, play_list_id in self.channel_to_upload_ids.items():
-            try:
-                self.getChannelNewestVideo(playlistId=play_list_id)
-            except HttpError, e:
-                print("HttpError " + str(e.resp.status) +
-                      " occurred when polling Channel " + channel +
-                      "\nDetails:\n" + str(e.content))
 
     def getChannelNewestVideosCallback(self, request_id, response, exception):
         if exception is not None:
@@ -286,22 +236,37 @@ class ytvideos(object):
                 if not keep_going:
                     self.playlist_min_date[pid] = self.playlist_latest[pid]
                     if number_of_new_videos:
-                        print("Got " + str(number_of_new_videos) +
-                              " new videos from channel: " + channelTitle)
+                        print("Got %d new videos from channel: %s" %
+                              (number_of_new_videos, channelTitle))
                     break
 
-    def getNewestVideos(self, settings):
+    def getNewestVideos(self):
         # Temporary fix to overcome oauth expiries, should only call once oauth
         # is expired (to be fixed)
-        self.youtube = self.initilize_youtube(settings)
+        self.youtube = self.initilize_youtube(self.set)
 
         # When subscription count is large it's important to batch all the
         # HTTP requests together as 1 http request. This will break if
         # Channel list is > 1000 (to be fixed)
-        batch = BatchHttpRequest(callback=self.getChannelNewestVideosCallback)
+        while True:
+            try:
+                batch = BatchHttpRequest(
+                    callback=self.getChannelNewestVideosCallback
+                    )
+            except HttpError, e:
+                    print("While doing a batch request to YouTube HTTP Error"
+                          " %d occurred:\n%s" % (e.resp.status, e.content))
+                    time.sleep(1)
+            else:
+                break
+
+        # Add each playlist to the batch request
         for play_list_id in self.channel_to_upload_ids.values():
-            batch.add(self.youtube.playlistItems().list(
-                part='snippet', maxResults=50, playlistId=play_list_id))
+            batch.add(
+                self.youtube.playlistItems().list(
+                    part='snippet', maxResults=50, playlistId=play_list_id
+                    )
+                )
         batch.execute()
 
         counter = 0
@@ -312,4 +277,5 @@ class ytvideos(object):
                 counter += 1
             except:
                 break
-        print "%d videos ready to upload" % counter
+
+        print("%d videos ready to upload" % counter)

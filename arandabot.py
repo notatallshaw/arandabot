@@ -33,18 +33,9 @@ def arandabot(settings=None):
     min_date = _getGlobalMinDate(settings=yt_settings)
 
     # Login to and get playlists from YouTube
-    while True:
-        try:
-            yt = ytvideos.ytvideos(settings=yt_settings,
-                                   no_older_than=min_date)
-        except ytvideos.HttpError, e:
-            print("An HTTP error %d occurred:\n%s" %
-                  (e.resp.status, e.content))
-        else:
-            print("Successfully logged in to and got channel information "
-                  "for YouTube")
-            break
+    yt = ytvideos.ytvideos(settings=yt_settings, no_older_than=min_date)
 
+    # Login in to reddit
     r = redditsubmissions.redditsubmissions(settings=reddit_settings)
 
     # script logic
@@ -52,7 +43,7 @@ def arandabot(settings=None):
     while script_settings.loop_forever or loop_number > 0:
         loop_number -= 1
 
-        yt.getNewestVideos(yt_settings)
+        yt.getNewestVideos()
 
         if yt.records:
             if script_settings.repost_protection:
@@ -65,3 +56,5 @@ def arandabot(settings=None):
 
         min_date = datetime.today()
         time.sleep(script_settings.seconds_to_sleep)
+
+    input("Press return to finish script")
