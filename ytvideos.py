@@ -248,17 +248,7 @@ class ytvideos(object):
         # When subscription count is large it's important to batch all the
         # HTTP requests together as 1 http request. This will break if
         # Channel list is > 1000 (to be fixed)
-        while True:
-            try:
-                batch = BatchHttpRequest(
-                    callback=self.getChannelNewestVideosCallback
-                    )
-            except HttpError, e:
-                    print("While doing a batch request to YouTube HTTP Error"
-                          " %d occurred:\n%s" % (e.resp.status, e.content))
-                    time.sleep(1)
-            else:
-                break
+        batch = BatchHttpRequest(callback=self.getChannelNewestVideosCallback)
 
         # Add each playlist to the batch request
         for play_list_id in self.channel_to_upload_ids.values():
@@ -267,7 +257,16 @@ class ytvideos(object):
                     part='snippet', maxResults=50, playlistId=play_list_id
                     )
                 )
-        batch.execute()
+
+        while True:
+            try:
+                batch.execute()
+            except HttpError, e:
+                    print("While doing a batch request to YouTube HTTP Error"
+                          " %d occurred:\n%s" % (e.resp.status, e.content))
+                    time.sleep(2)
+            else:
+                break
 
         counter = 0
         while not self.q.empty():
