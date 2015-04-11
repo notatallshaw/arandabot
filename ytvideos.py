@@ -24,6 +24,7 @@ except ImportError:
 
 from collections import namedtuple
 from datetime import datetime
+from httplib import ResponseNotReady
 
 __all__ = ('ytvideos')
 
@@ -120,7 +121,11 @@ class ytvideos(object):
             except HttpError, e:
                 print("While logging in to YouTubeaAn HTTP error"
                       "%d occurred:\n%s" % (e.resp.status, e.content))
-                time.sleep(1)
+                time.sleep(15)
+            except ResponseNotReady, e:
+                print("Got HTTP ResponseNotReady error when"
+                      "logging in to YouTube %s:" % e)
+                time.sleep(15)
             else:
                 break
 
