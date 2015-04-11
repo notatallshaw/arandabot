@@ -8,7 +8,7 @@ import time
 from datetime import datetime, timedelta
 
 # My modules
-import ytvideos
+import ytvideos as ytvideos
 import redditsubmissions
 
 __all__ = ('arandabot')
