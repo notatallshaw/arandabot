@@ -124,8 +124,12 @@ class ytvideos(object):
                 time.sleep(15)
             except ResponseNotReady, e:
                 print("Got HTTP ResponseNotReady error when"
-                      "logging in to YouTube %s:" % e)
+                      "logging in to YouTube:\n%s" % e)
                 time.sleep(15)
+            except httplib2.ServerNotFoundError:
+                print("The Google API seems to not be available at the moment"
+                      "with error:\n%s" % e)
+                time.sleep(60)
             else:
                 break
 
@@ -170,10 +174,26 @@ class ytvideos(object):
         while True:
             channel_ids = []
             # Grab 1 page of results from YouTube
-            subscriber_items = self.youtube.subscriptions().list(
-                mine=True, part="snippet", maxResults=50,
-                pageToken=nextPageToken
-                ).execute()
+            while True:
+                try:
+                    subscriber_items = self.youtube.subscriptions().list(
+                        mine=True, part="snippet", maxResults=50,
+                        pageToken=nextPageToken
+                        ).execute()
+                except HttpError, e:
+                    print("While logging in to YouTubeaAn HTTP error"
+                          "%d occurred:\n%s" % (e.resp.status, e.content))
+                    time.sleep(15)
+                except ResponseNotReady, e:
+                    print("Got HTTP ResponseNotReady error when"
+                          "logging in to YouTube:\n%s" % e)
+                    time.sleep(15)
+                except httplib2.ServerNotFoundError:
+                    print("The Google API seems to not be available at the"
+                          " moment with error:\n%s" % e)
+                    time.sleep(60)
+                else:
+                    break
 
             for item in subscriber_items["items"]:
                 channel_ids.append(item["snippet"]["resourceId"]["channelId"])
@@ -272,9 +292,17 @@ class ytvideos(object):
             try:
                 batch.execute()
             except HttpError, e:
-                    print("While doing a batch request to YouTube HTTP Error"
-                          " %d occurred:\n%s" % (e.resp.status, e.content))
-                    time.sleep(15)
+                print("While doing a batch request to YouTube HTTP Error"
+                      " %d occurred:\n%s" % (e.resp.status, e.content))
+                time.sleep(15)
+            except ResponseNotReady, e:
+                print("Got HTTP ResponseNotReady error when"
+                      "logging in to YouTube:\n%s" % e)
+                time.sleep(15)
+            except httplib2.ServerNotFoundError:
+                print("The Google API seems to not be available at the moment"
+                      "with error:\n%s" % e)
+                time.sleep(60)
             else:
                 break
 
