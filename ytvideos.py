@@ -256,11 +256,11 @@ class ytvideos(object):
         batch = BatchHttpRequest(callback=self.getChannelNewestVideosCallback)
 
         # Add each playlist to the batch request
-        for channel_id, play_list_id in self.channel_to_upload_ids.items():
+        for channel_id in self.channel_to_upload_ids:
 
-            # We should be getting directly off the playlist items
+            # We should be getting videos directly off the playlist items
             # But YouTube API takes 15 - 60 mins to update this list
-            # So instead we search on the channel id, if the above problem is
+            # So instead search.list is used at great quota cost
             batch.add(
                 self.youtube.search().list(
                     part='snippet', maxResults=50, channelId=channel_id,
