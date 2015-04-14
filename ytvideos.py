@@ -67,11 +67,11 @@ class ytvideos(object):
         # playlist date increases, this is the min date to check against
         # each playlist
         self.playlist_min_date = self.populateMinDates(
-            play_list_ids=self.channel_to_upload_ids.values(),
+            play_list_ids=self.channel_to_upload_ids.keys(),
             min_date=no_older_than
         )
         self.playlist_latest = self.populateMinDates(
-            play_list_ids=self.channel_to_upload_ids.values(),
+            play_list_ids=self.channel_to_upload_ids.keys(),
             min_date=no_older_than
         )
 
@@ -218,28 +218,28 @@ class ytvideos(object):
                                reverse=True):
 
                 snippet = item["snippet"]
-                pid = snippet["playlistId"]
+                cid = snippet["channelId"]
                 channelTitle = snippet["channelTitle"]
                 published = datetime.strptime(snippet["publishedAt"],
                                               "%Y-%m-%dT%H:%M:%S.000Z")
 
                 # Check if the video is older than the filter date
-                if (self.playlist_min_date[pid] is not None and
-                        published <= self.playlist_min_date[pid]):
+                if (self.playlist_min_date[cid] is not None and
+                        published <= self.playlist_min_date[cid]):
                     keep_going = False
                 else:
                     number_of_new_videos += 1
-                    YTid = snippet["resourceId"]["videoId"]
+                    YTid = item["id"]["videoId"]
                     title = snippet["title"]
                     date = snippet["publishedAt"]
                     self.q.put([YTid, self.record(title=title, date=date)])
 
                     # Update latest published timestamp for that playlistId
-                    if published > self.playlist_latest[pid]:
-                        self.playlist_latest[pid] = published
+                    if published > self.playlist_latest[cid]:
+                        self.playlist_latest[cid] = published
 
                 if not keep_going:
-                    self.playlist_min_date[pid] = self.playlist_latest[pid]
+                    self.playlist_min_date[cid] = self.playlist_latest[cid]
                     if number_of_new_videos:
                         print("Got %d new videos from channel: %s" %
                               (number_of_new_videos, channelTitle))
@@ -256,10 +256,15 @@ class ytvideos(object):
         batch = BatchHttpRequest(callback=self.getChannelNewestVideosCallback)
 
         # Add each playlist to the batch request
-        for play_list_id in self.channel_to_upload_ids.values():
+        for channel_id in self.channel_to_upload_ids:
+
+            # We should be getting videos directly off the playlist items
+            # But YouTube API takes 15 - 60 mins to update this list
+            # So instead search.list is used at great quota cost
             batch.add(
-                self.youtube.playlistItems().list(
-                    part='snippet', maxResults=50, playlistId=play_list_id
+                self.youtube.search().list(
+                    part='snippet', maxResults=50, channelId=channel_id,
+                    type='video', order='date', safeSearch='none'
                     )
                 )
 
@@ -269,7 +274,7 @@ class ytvideos(object):
             except HttpError, e:
                     print("While doing a batch request to YouTube HTTP Error"
                           " %d occurred:\n%s" % (e.resp.status, e.content))
-                    time.sleep(2)
+                    time.sleep(15)
             else:
                 break
 

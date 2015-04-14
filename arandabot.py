@@ -8,7 +8,7 @@ import time
 from datetime import datetime, timedelta
 
 # My modules
-import ytvideos
+import ytvideos as ytvideos
 import redditsubmissions
 
 __all__ = ('arandabot')
@@ -28,12 +28,26 @@ def arandabot(settings=None):
     script_settings = settings.script
     yt_settings = settings.youtube
     reddit_settings = settings.reddit
+    seconds_to_sleep = script_settings.seconds_to_sleep
 
     # variable instantiation
     min_date = _getGlobalMinDate(settings=yt_settings)
 
     # Login to and get playlists from YouTube
     yt = ytvideos.ytvideos(settings=yt_settings, no_older_than=min_date)
+
+    # 0.8 is a magic number based on anecdotal observations of just how
+    # slow the YouTube API is
+    quota_cost = 0.8*len(yt.channel_to_upload_ids)*100*86400/seconds_to_sleep
+
+    # Handle expected YouTube API quota cost
+    if quota_cost > 45000000:
+        print("WARNING: 50,000,000 is your maximum YouTube API daily quota"
+              " limit\nYour estimated maximum cost is %s:" %
+              "{:,}".format(quota_cost))
+    else:
+        print("50,000,000 is your maximum YouTube API daily quota limit\n"
+              "Your estimated maximum cost is %s:" % "{:,}".format(quota_cost))
 
     # Login in to reddit
     r = redditsubmissions.redditsubmissions(settings=reddit_settings)
@@ -55,6 +69,6 @@ def arandabot(settings=None):
                                 link='https://www.youtube.com/watch?v='+YTid)
 
         min_date = datetime.today()
-        time.sleep(script_settings.seconds_to_sleep)
+        time.sleep(seconds_to_sleep)
 
     input("Press return to finish script")
