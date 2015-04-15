@@ -38,8 +38,8 @@ def arandabot(settings=None):
 
     # 0.95 and 0.5 are magic numbers based on anecdotal observations
     # of slow the YouTube API is
-    quota_cost = (0.95*len(yt.channel_to_upload_ids)*100*86400
-                  / (seconds_to_sleep + 0.5))
+    quota_cost = int(0.95*len(yt.channel_to_upload_ids)*100*86400
+                     / (seconds_to_sleep + 0.5))
 
     # Handle expected YouTube API quota cost
     if quota_cost > 45000000:
@@ -63,7 +63,8 @@ def arandabot(settings=None):
         if yt.records:
             if script_settings.repost_protection:
                 r.getYouTubeURLs(no_older_than=min_date)
-                yt.delKeys(r.records)
+                duplicate_count = yt.delKeys(r.records)
+                print("%d videos already posted on Reddit" % duplicate_count)
 
             for YTid in sorted(yt.records, key=lambda k: yt.records[k].date):
                 r.submitContent(title=yt.records[YTid].title,

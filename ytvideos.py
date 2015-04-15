@@ -114,7 +114,9 @@ class ytvideos(object):
         if credentials is None or credentials.invalid:
             credentials = run_flow(flow, storage, args)
 
-        while True:
+        counter = 0
+        while counter < 500:
+            counter += 1
             try:
                 youtube = build(yt_api_service_name, yt_api_version,
                                 http=credentials.authorize(httplib2.Http()))
@@ -148,20 +150,47 @@ class ytvideos(object):
         return playlist_min_date
 
     def delKeys(self, keys):
+        counter = 0
         for key in keys:
             try:
                 del self.records[key]
             except KeyError:
                 pass
+            else:
+                counter += 1
+
+        return counter
 
     def getUserUploadPlayLists(self):
         '''Get user playlists defined in the settings file'''
         for account in self.set.accounts:
-            print("Getting information for channel: %s" % account)
-            channels_response = self.youtube.channels().list(
-                forUsername=account,
-                part='contentDetails'
-                ).execute()
+            counter = 0
+            while counter < 500:
+                counter += 1
+                try:
+                    channels_response = self.youtube.channels().list(
+                        forUsername=account, part='contentDetails'
+                        ).execute()
+                except HttpError, e:
+                    print("While getting subscriptions from YouTube an HTTP "
+                          " %d occurred:\n%s" % (e.resp.status, e.content))
+                    time.sleep(15)
+                except ResponseNotReady, e:
+                    print("Got HTTP ResponseNotReady error when"
+                          "logging in to YouTube:\n%s" % e)
+                    time.sleep(15)
+                except httplib2.ServerNotFoundError, e:
+                    print("The Google API seems to not be available at the"
+                          " moment with error:\n%s" % e)
+                    time.sleep(60)
+                except Exception, e:
+                    print("Some unexpected exception happened when logging"
+                          " in to YouTube, sleeping for 5 mins:\n%s" % e)
+                    time.sleep(300)
+                else:
+                    print("Got information for account: %s" % account)
+                    break
+
             try:
                 for item in channels_response['items']:
                     channel_id = item["id"]
@@ -178,7 +207,9 @@ class ytvideos(object):
         while True:
             channel_ids = []
             # Grab 1 page of results from YouTube
-            while True:
+            counter = 0
+            while counter < 500:
+                counter += 1
                 try:
                     subscriber_items = self.youtube.subscriptions().list(
                         mine=True, part="snippet", maxResults=50,
@@ -210,9 +241,31 @@ class ytvideos(object):
 
             # API only accepts at most 50 item IDs
             channels_by_comma = ",".join(channel_ids)
-            channels_response = self.youtube.channels().list(
-                id=channels_by_comma, part='contentDetails'
-                ).execute()
+            counter = 0
+            while counter < 500:
+                counter += 1
+                try:
+                    channels_response = self.youtube.channels().list(
+                        id=channels_by_comma, part='contentDetails'
+                        ).execute()
+                except HttpError, e:
+                    print("While getting channel list from YouTube an HTTP"
+                          " %d occurred:\n%s" % (e.resp.status, e.content))
+                    time.sleep(15)
+                except ResponseNotReady, e:
+                    print("Got HTTP ResponseNotReady error when"
+                          " getting channel list from YouTube:\n%s" % e)
+                    time.sleep(15)
+                except httplib2.ServerNotFoundError, e:
+                    print("The Google API seems to not be available at the"
+                          " moment with error:\n%s" % e)
+                    time.sleep(60)
+                except Exception, e:
+                    print("Unexpected exception happened when getting channel"
+                          " list from YouTube, sleeping for 5 mins:\n%s" % e)
+                    time.sleep(300)
+                else:
+                    break
 
             try:
                 for item in channels_response['items']:
@@ -296,7 +349,9 @@ class ytvideos(object):
                     )
                 )
 
-        while True:
+        counter = 0
+        while counter < 500:
+            counter += 1
             try:
                 batch.execute()
             except HttpError, e:
@@ -326,5 +381,5 @@ class ytvideos(object):
                 counter += 1
             except:
                 break
-
-        print("%d videos ready to upload" % counter)
+        if counter > 0:
+            print("%d new YouTube videos ready to upload" % counter)

@@ -23,18 +23,21 @@ class redditsubmissions(object):
         self.records = {}
         self.set = settings
         self.reddit = self.getReddit()
+        self.subreddit = self.reddit.get_subreddit(self.set.subreddit)
 
     def getReddit(self):
         """Get a reference to Reddit."""
         r = praw.Reddit(user_agent=self.set.ua)
-        while True:
+        counter = 0
+        while counter < 10:
+            counter += 1
             try:
                 r.login(self.set.username, self.set.password)
             except praw.requests.exceptions.HTTPError, e:
                 print("While trying to login to Reddit HTTPError "
                       " %d occurred:\n%s" % (e.resp.status, e.content))
                 time.sleep(15)
-            except:
+            except Exception:
                 print("Failed to login to Reddit")
                 raise
             else:
@@ -46,8 +49,27 @@ class redditsubmissions(object):
         self.records[YTid] = redditReccord(YTid=YTid, date=date)
 
     def getYouTubeURLs(self, no_older_than=None):
-        subr = self.reddit.get_subreddit(self.set.subreddit)
-        for i, subm in enumerate(subr.get_new(limit=1000)):
+        counter = 0
+        while counter < 100:
+            counter += 1
+            try:
+                new_subreddit_links = self.subreddit.get_new(limit=1000)
+            except praw.errors.APIException, e:
+                print("While trying to get subreddit links got "
+                      "API error [ %s ]: %s" % (e.error_type, e.message))
+                return None
+            except praw.requests.exceptions.ConnectionError, e:
+                print("Reddit connection error, backing off for 2 mins"
+                      ":\n%s" % e)
+                time.sleep(120)
+            except Exception, e:
+                print("Some unexpected exception submitting to reddit"
+                      " sleeping for 4 mins:\n%s" % e)
+                time.sleep(240)
+            else:
+                break
+
+        for i, subm in enumerate(new_subreddit_links):
             submtup = urlparse(subm.url)
             domain = submtup.netloc.lower()
             if 'youtube' in domain:
@@ -74,18 +96,17 @@ class redditsubmissions(object):
 
     def submitContent(self, title=None, link=None):
         """Submit a link to a subreddit."""
-        subr = self.reddit.get_subreddit(self.set.subreddit)
         counter = 0
         while counter < 10:
             counter += 1
             try:
-                subr.submit(title, url=link)
+                self.subreddit.submit(title, url=link)
             except praw.errors.APIException, e:
-                print("API error [ %s ]: %s while submitting %s" %
+                print("Reddit API error [ %s ]: %s while submitting %s" %
                       (e.error_type, e.message, link))
                 break
             except praw.requests.exceptions.ConnectionError, e:
-                print("Got some connection error, backing off for 2 mins"
+                print("Reddit connection error, backing off for 2 mins"
                       ":\n%s" % e)
                 time.sleep(120)
             except Exception, e:
@@ -97,11 +118,30 @@ class redditsubmissions(object):
                 break
 
     def deleteAllPosts(self):
-        subr = self.reddit.get_subreddit(self.set.subreddit)
-        for submission in subr.get_new(limit=1000):
+        counter = 0
+        while counter < 100:
+            counter += 1
+            try:
+                new_subreddit_links = self.subreddit.get_new(limit=1000)
+            except praw.errors.APIException, e:
+                print("While trying to get subreddit links got "
+                      "API error [ %s ]: %s" % (e.error_type, e.message))
+                return None
+            except praw.requests.exceptions.ConnectionError, e:
+                print("Reddit connection error, backing off for 2 mins"
+                      ":\n%s" % e)
+                time.sleep(120)
+            except Exception, e:
+                print("Some unexpected exception submitting to reddit"
+                      " sleeping for 4 mins:\n%s" % e)
+                time.sleep(240)
+            else:
+                break
+
+        for submission in new_subreddit_links:
             try:
                 submission.delete()
-            except:
+            except Exception:
                 print("Failed to delete: %s" % submission)
             else:
                 print("Succeeded deleting: %s" % submission)
