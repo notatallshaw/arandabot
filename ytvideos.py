@@ -120,16 +120,20 @@ class ytvideos(object):
                                 http=credentials.authorize(httplib2.Http()))
             except HttpError, e:
                 print("While logging in to YouTubeaAn HTTP error"
-                      "%d occurred:\n%s" % (e.resp.status, e.content))
+                      " %d occurred:\n%s" % (e.resp.status, e.content))
                 time.sleep(15)
             except ResponseNotReady, e:
                 print("Got HTTP ResponseNotReady error when"
-                      "logging in to YouTube:\n%s" % e)
+                      " logging in to YouTube:\n%s" % e)
                 time.sleep(15)
-            except httplib2.ServerNotFoundError:
+            except httplib2.ServerNotFoundError, e:
                 print("The Google API seems to not be available at the moment"
-                      "with error:\n%s" % e)
+                      " with error:\n%s" % e)
                 time.sleep(60)
+            except Exception, e:
+                print("Some unexpected exception happened when logging in to"
+                      " YouTube, sleeping for 15 mins:\n%s" % e)
+                time.sleep(900)
             else:
                 break
 
@@ -181,17 +185,21 @@ class ytvideos(object):
                         pageToken=nextPageToken
                         ).execute()
                 except HttpError, e:
-                    print("While logging in to YouTubeaAn HTTP error"
-                          "%d occurred:\n%s" % (e.resp.status, e.content))
+                    print("While getting subscriptions from YouTube an HTTP "
+                          " %d occurred:\n%s" % (e.resp.status, e.content))
                     time.sleep(15)
                 except ResponseNotReady, e:
                     print("Got HTTP ResponseNotReady error when"
                           "logging in to YouTube:\n%s" % e)
                     time.sleep(15)
-                except httplib2.ServerNotFoundError:
+                except httplib2.ServerNotFoundError, e:
                     print("The Google API seems to not be available at the"
                           " moment with error:\n%s" % e)
                     time.sleep(60)
+                except Exception, e:
+                    print("Some unexpected exception happened when logging"
+                          " in to YouTube, sleeping for 5 mins:\n%s" % e)
+                    time.sleep(300)
                 else:
                     break
 
@@ -297,12 +305,16 @@ class ytvideos(object):
                 time.sleep(15)
             except ResponseNotReady, e:
                 print("Got HTTP ResponseNotReady error when"
-                      "logging in to YouTube:\n%s" % e)
+                      " running a batch request against YouTube:\n%s" % e)
                 time.sleep(15)
             except httplib2.ServerNotFoundError:
                 print("The Google API seems to not be available at the moment"
-                      "with error:\n%s" % e)
+                      " with error:\n%s" % e)
                 time.sleep(60)
+            except Exception, e:
+                print("Some unexpected exception happened when running a batch"
+                      " request against YouTube, sleeping for 5 mins:\n%s" % e)
+                time.sleep(300)
             else:
                 break
 

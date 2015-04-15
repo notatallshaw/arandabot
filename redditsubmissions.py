@@ -53,7 +53,7 @@ class redditsubmissions(object):
             if 'youtube' in domain:
                 try:
                     key = parse_qs(submtup.query)['v'][0]
-                except:
+                except Exception:
                     pass
             elif 'youtube' in sub(r'[^a-z0-9]+', '', domain):
                 # This should pick up any official youtu.be URL shortner
@@ -75,13 +75,26 @@ class redditsubmissions(object):
     def submitContent(self, title=None, link=None):
         """Submit a link to a subreddit."""
         subr = self.reddit.get_subreddit(self.set.subreddit)
-        try:
-            subr.submit(title, url=link)
-        except praw.errors.APIException, e:
-            print("API error [ %s ]: %s while submitting %s" %
-                  (e.error_type, e.message, link))
-        else:
-            print("Successfully submitted %s" % title)
+        counter = 0
+        while counter < 10:
+            counter += 1
+            try:
+                subr.submit(title, url=link)
+            except praw.errors.APIException, e:
+                print("API error [ %s ]: %s while submitting %s" %
+                      (e.error_type, e.message, link))
+                break
+            except praw.requests.exceptions.ConnectionError, e:
+                print("Got some connection error, backing off for 2 mins"
+                      ":\n%s" % e)
+                time.sleep(120)
+            except Exception, e:
+                print("Some unexpected exception submitting to reddit"
+                      " sleeping for 4 mins:\n%s" % e)
+                time.sleep(240)
+            else:
+                print("Successfully submitted %s" % title)
+                break
 
     def deleteAllPosts(self):
         subr = self.reddit.get_subreddit(self.set.subreddit)

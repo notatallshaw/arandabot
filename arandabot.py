@@ -36,9 +36,10 @@ def arandabot(settings=None):
     # Login to and get playlists from YouTube
     yt = ytvideos.ytvideos(settings=yt_settings, no_older_than=min_date)
 
-    # 0.8 is a magic number based on anecdotal observations of just how
-    # slow the YouTube API is
-    quota_cost = 0.8*len(yt.channel_to_upload_ids)*100*86400/seconds_to_sleep
+    # 0.95 and 0.5 are magic numbers based on anecdotal observations
+    # of slow the YouTube API is
+    quota_cost = (0.95*len(yt.channel_to_upload_ids)*100*86400
+                  / (seconds_to_sleep + 0.5))
 
     # Handle expected YouTube API quota cost
     if quota_cost > 45000000:
