@@ -362,7 +362,7 @@ class ytvideos(object):
                 print("Got HTTP ResponseNotReady error when"
                       " running a batch request against YouTube:\n%s" % e)
                 time.sleep(15)
-            except httplib2.ServerNotFoundError:
+            except httplib2.ServerNotFoundError, e:
                 print("The Google API seems to not be available at the moment"
                       " with error:\n%s" % e)
                 time.sleep(60)
