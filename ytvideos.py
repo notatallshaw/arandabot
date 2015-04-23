@@ -18,7 +18,7 @@ try:
     from oauth2client.file import Storage
     from oauth2client.tools import run_flow, argparser
 except ImportError:
-    print("Can't find google-api-python-client please insstall. \n"
+    print("Can't find google-api-python-client please install. \n"
           "Please use the provided requirements.txt. \n"
           "On Windows this would look something like: \n"
           "C:\Python27\Scripts>pip2.7.exe install -r requirements.txt")
