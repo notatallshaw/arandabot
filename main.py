@@ -25,7 +25,7 @@ def main():
         else:
             break
 
-    input("Press return to finish script")
+    raw_input("Press return to finish script")
 
 if __name__ == '__main__':
     main()
