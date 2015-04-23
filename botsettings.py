@@ -41,12 +41,12 @@ class botsettings(object):
         try:
             accounts = youtube["accounts"]
         except KeyError:
-            accounts = None
+            accounts = []
 
         try:
             account_ids = youtube["account_ids"]
         except KeyError:
-            account_ids = None
+            account_ids = []
 
         try:
             days_newer_than = youtube["days_newer_than"]
