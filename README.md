@@ -20,9 +20,8 @@ To get this bot working, do the following:
   * Click "Download JSON"
   * Name file "client_secrets.json" and put in same directory as the bot
 
-4. Install praw and Google Python API: # Possibly removed need for this step, will test in next couple of days
-  * pip install google-api-python-client
-  * pip install praw
+4. Install dependencies from requirements.txt, on Windows it looks like this:
+  * C:\Python27\Scripts\pip2.7.exe install -r requirements.txt
 
 5. Run main.py in your terminal or windows command prompt (you you can copy the output) and get oauth2 webtoken
   * The console will output a Google web page you need to go to and grab the token
