@@ -12,9 +12,10 @@ from datetime import datetime
 try:
     import praw
 except ImportError:
-    print("Can't find reddit module praw please insstall. \n"
+    print("Can't find reddit module praw please install. \n"
+          "Please use the provided requirements.txt. \n"
           "On Windows this would look something like: \n"
-          "C:\Python27\Scripts>pip2.7.exe install praw")
+          "C:\Python27\Scripts>pip2.7.exe install -r requirements.txt")
     raise
 
 

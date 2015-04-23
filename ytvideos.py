@@ -4,13 +4,13 @@ Created on 12 Jan 2015
 @author: Damian Shaw
 '''
 
-import httplib2
 import os
 import Queue
 import time
 import re
 
 try:
+    import httplib2
     from apiclient.discovery import build
     from apiclient.errors import HttpError
     from apiclient.http import BatchHttpRequest
@@ -19,9 +19,9 @@ try:
     from oauth2client.tools import run_flow, argparser
 except ImportError:
     print("Can't find google-api-python-client please insstall. \n"
+          "Please use the provided requirements.txt. \n"
           "On Windows this would look something like: \n"
-          "C:\Python27\Scripts>pip2.7.exe install google-api-python-client")
-    raise
+          "C:\Python27\Scripts>pip2.7.exe install -r requirements.txt")
 
 from collections import namedtuple
 from datetime import datetime

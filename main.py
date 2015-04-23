@@ -18,6 +18,9 @@ def main():
     while True:
         try:
             arandabot.arandabot(settings=settings)
+        except ImportError:
+            print("Import Error")
+            break
         except Exception, e:
             print("Some unexpected exception occured in arandabot"
                   " backing off for 5 mins and trying again:\n%s" % e)
@@ -25,7 +28,8 @@ def main():
         else:
             break
 
-    raw_input("Press return to finish script")
+    if settings.script.return_to_finish:
+        raw_input("Press return to finish script")
 
 if __name__ == '__main__':
     main()
