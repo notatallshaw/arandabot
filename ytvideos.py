@@ -330,6 +330,7 @@ class ytvideos(object):
         # Temporary fix to overcome oauth expiries, should only call once oauth
         # is expired (to be fixed)
         self.youtube = self.initilize_youtube(self.set)
+        self.records = {}
 
         # When subscription count is large it's important to batch all the
         # HTTP requests together as 1 http request. This will break if
@@ -381,5 +382,5 @@ class ytvideos(object):
                 counter += 1
             except:
                 break
-        if counter > 0:
-            print("%d new YouTube videos ready to upload" % counter)
+
+        return counter

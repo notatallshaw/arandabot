@@ -58,7 +58,8 @@ def arandabot(settings=None):
     while script_settings.loop_forever or loop_number > 0:
         loop_number -= 1
 
-        yt.getNewestVideos()
+        number_yt_videos = yt.getNewestVideos()
+        print("%d new YouTube videos found" % number_yt_videos)
 
         if yt.records:
             if script_settings.repost_protection:
@@ -72,5 +73,3 @@ def arandabot(settings=None):
 
         min_date = datetime.today()
         time.sleep(seconds_to_sleep)
-
-    input("Press return to finish script")
