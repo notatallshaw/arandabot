@@ -8,6 +8,7 @@ import httplib2
 import os
 import Queue
 import time
+import re
 
 try:
     from apiclient.discovery import build
@@ -276,7 +277,7 @@ class ytvideos(object):
                 cid = snippet["channelId"]
                 YTid = item["id"]["videoId"]
                 title = snippet["title"]
-                # description = snippet["description"]
+                description = snippet["description"]
                 date = snippet["publishedAt"]
                 published = datetime.strptime(date, "%Y-%m-%dT%H:%M:%S.000Z")
 
@@ -287,6 +288,26 @@ class ytvideos(object):
                 # Check if video has already been processed
                 if YTid in self.channel_videos[cid]:
                     continue
+
+                # Check if required substring in video title,
+                # checking against case-insensitive alpha-numeric
+                # parts of string only
+                title_contain = self.set.title_must_contain
+                if title_contain:
+                    title_contain = re.sub('[\W_]+', '', title_contain).lower()
+                    check_title = re.sub('[\W_]+', '', title).lower()
+                    if title_contain not in check_title:
+                        continue
+
+                # Check if required substring in video title,
+                # checking against case-insensitive alpha-numeric
+                # parts of string only
+                desc_contain = self.set.description_must_contain
+                if desc_contain:
+                    desc_contain = re.sub('[\W_]+', '', desc_contain).lower()
+                    check_title = re.sub('[\W_]+', '', description).lower()
+                    if desc_contain not in check_title:
+                        continue
 
                 number_of_new_videos += 1
                 self.q.put([YTid, self.record(title=title, date=date)])

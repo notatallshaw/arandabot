@@ -3,18 +3,22 @@
 		"username": "",
 		"password": "",
 		"subreddit": "sandboxtest",
-		"ua": "hello i be a bot",
+		"ua": "Mozilla/5.0 (Aranda; Terminal; rv:10.0) Gecko/10.0",
 		"praw_block_size": 100
 	},
 	"youtube": {
 	    "subscriptions": true,
 		"accounts": ["michaelaranda","WhatImDoingRightNow","WhatImPwningRightNow"],
-		"days_newer_than": 1
+		"days_newer_than": 1,
+		"title_must_contain": "",
+		"description_must_contain": ""
 	},
 	"script": {
 		"repost_protection": true,
 		"loop_forever": true,
 		"number_of_loops": 0,
-		"seconds_to_sleep": 30
+		"seconds_to_sleep": 120,
+		"heartbeat": true,
+		"return_to_finish": true
 	}
 }

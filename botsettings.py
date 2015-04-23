@@ -44,11 +44,6 @@ class botsettings(object):
             accounts = None
 
         try:
-            description_contains = youtube["description_contains"]
-        except KeyError:
-            description_contains = None
-
-        try:
             days_newer_than = youtube["days_newer_than"]
         except KeyError:
             days_newer_than = None
@@ -62,14 +57,26 @@ class botsettings(object):
             raise TypeError("No accounts listed or subscription"
                             "pulls requested")
 
-        youtubesettings = namedtuple('youtubesettings',
-                                     ["accounts", "description_contains",
-                                      "days_newer_than", "subscriptions"])
+        try:
+            title_must_contain = youtube["title_must_contain"]
+        except KeyError:
+            title_must_contain = None
 
-        return youtubesettings(accounts=accounts,
-                               description_contains=description_contains,
-                               days_newer_than=days_newer_than,
-                               subscriptions=subscriptions)
+        try:
+            description_must_contain = youtube["description_must_contain"]
+        except KeyError:
+            description_must_contain = None
+
+        youtubesettings = namedtuple('youtubesettings',
+                                     ["accounts", "days_newer_than",
+                                      "subscriptions", "title_must_contain",
+                                      "description_must_contain"])
+
+        return youtubesettings(
+            accounts=accounts, days_newer_than=days_newer_than,
+            subscriptions=subscriptions, title_must_contain=title_must_contain,
+            description_must_contain=description_must_contain
+            )
 
     def redditsettings(self, settings):
         try:
@@ -152,13 +159,27 @@ class botsettings(object):
         except KeyError:
             number_of_loops = 1
 
+        try:
+            heartbeat = script["heartbeat"]
+        except KeyError:
+            number_of_loops = True
+
+        try:
+            return_to_finish = script["return_to_finish"]
+        except KeyError:
+            return_to_finish = True
+
         scriptSettings = namedtuple('scriptSettings',
                                     ["repost_protection",
                                      "loop_forever",
                                      "number_of_loops",
-                                     "seconds_to_sleep"])
+                                     "seconds_to_sleep",
+                                     "heartbeat",
+                                     "return_to_finish"])
 
         return scriptSettings(repost_protection=repost_protection,
                               loop_forever=loop_forever,
                               number_of_loops=number_of_loops,
-                              seconds_to_sleep=seconds_to_sleep)
+                              seconds_to_sleep=seconds_to_sleep,
+                              heartbeat=heartbeat,
+                              return_to_finish=return_to_finish)

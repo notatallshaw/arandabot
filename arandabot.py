@@ -38,8 +38,8 @@ def arandabot(settings=None):
 
     # 0.95 and 0.5 are magic numbers based on anecdotal observations
     # of slow the YouTube API is
-    quota_cost = int(0.95*len(yt.channel_titles)*100*86400
-                     / (seconds_to_sleep + 0.5))
+    quota_cost = int(0.95*len(yt.channel_titles)*86400
+                     / (seconds_to_sleep + 0.5))*100
 
     # Handle expected YouTube API quota cost
     if quota_cost > 45000000:
@@ -59,7 +59,8 @@ def arandabot(settings=None):
         loop_number -= 1
 
         number_yt_videos = yt.getNewestVideos()
-        print("%d new YouTube videos found" % number_yt_videos)
+        if number_yt_videos or script_settings.heartbeat:
+            print("%d new YouTube videos found" % number_yt_videos)
 
         if yt.records:
             if script_settings.repost_protection:
