@@ -57,10 +57,11 @@ class ytvideos(object):
 
         # This dictionary maps the channel id to the upload
         # playlist id, this dictionary is populated with the 2 methods
-        # getUserUploadPlayLists and getSubscriptionUploadPlayLists
+        # getUserAccountNameDetails and getSubscriptionUploadPlayLists
         self.channel_videos = {}
         self.channel_titles = {}
-        self.getUserUploadPlayLists()
+        self.getUserAccountNameDetails()
+        self.getUserAccountIdDetails()
         if self.set.subscriptions:
             self.getSubscriptionUploadPlayLists()
         print('Successfully got channel information from YouTube')
@@ -145,7 +146,7 @@ class ytvideos(object):
 
         return counter
 
-    def getUserUploadPlayLists(self):
+    def getUserAccountNameDetails(self):
         '''Get user playlists defined in the settings file'''
         for account in self.set.accounts:
             counter = 0
@@ -184,6 +185,46 @@ class ytvideos(object):
             except KeyError:
                 print("There were no channels in the youtube account %s"
                       % account)
+
+    def getUserAccountIdDetails(self):
+        '''Get user playlists defined in the settings file'''
+        for account in self.set.account_ids:
+            counter = 0
+            while counter < 500:
+                counter += 1
+                try:
+                    channels_response = self.youtube.channels().list(
+                        id=account, part='snippet'
+                        ).execute()
+                except HttpError, e:
+                    print("While getting subscriptions from YouTube an HTTP "
+                          " %d occurred:\n%s" % (e.resp.status, e.content))
+                    time.sleep(15)
+                except ResponseNotReady, e:
+                    print("Got HTTP ResponseNotReady error when"
+                          "logging in to YouTube:\n%s" % e)
+                    time.sleep(15)
+                except httplib2.ServerNotFoundError, e:
+                    print("The Google API seems to not be available at the"
+                          " moment with error:\n%s" % e)
+                    time.sleep(60)
+                except Exception, e:
+                    print("Some unexpected exception happened when logging"
+                          " in to YouTube, sleeping for 5 mins:\n%s" % e)
+                    time.sleep(300)
+                else:
+                    break
+
+            try:
+                for item in channels_response['items']:
+                    channel_id = item["id"]
+                    title = item["snippet"]["title"]
+                    print("Got information for account: %s" % title)
+                    self.channel_titles[channel_id] = title
+                    self.channel_videos[channel_id] = []
+            except KeyError:
+                print("There were no channels in the youtube account %s"
+                      % self.channel_titles[account])
 
     def getSubscriptionUploadPlayLists(self):
         # Get playlists from the users subscribed channels

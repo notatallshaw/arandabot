@@ -44,6 +44,11 @@ class botsettings(object):
             accounts = None
 
         try:
+            account_ids = youtube["account_ids"]
+        except KeyError:
+            account_ids = None
+
+        try:
             days_newer_than = youtube["days_newer_than"]
         except KeyError:
             days_newer_than = None
@@ -69,12 +74,14 @@ class botsettings(object):
 
         youtubesettings = namedtuple('youtubesettings',
                                      ["accounts", "days_newer_than",
-                                      "subscriptions", "title_must_contain",
+                                      "account_ids", "subscriptions",
+                                      "title_must_contain",
                                       "description_must_contain"])
 
         return youtubesettings(
             accounts=accounts, days_newer_than=days_newer_than,
-            subscriptions=subscriptions, title_must_contain=title_must_contain,
+            account_ids=account_ids, subscriptions=subscriptions,
+            title_must_contain=title_must_contain,
             description_must_contain=description_must_contain
             )
 

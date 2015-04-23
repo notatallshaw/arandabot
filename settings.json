@@ -9,6 +9,7 @@
 	"youtube": {
 	    "subscriptions": true,
 		"accounts": ["michaelaranda","WhatImDoingRightNow","WhatImPwningRightNow"],
+		"account_ids": ["UCaVwpbqM8dkhQvbL8XileAA"],
 		"days_newer_than": 1,
 		"title_must_contain": "",
 		"description_must_contain": ""
