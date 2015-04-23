@@ -169,7 +169,7 @@ class botsettings(object):
         try:
             heartbeat = script["heartbeat"]
         except KeyError:
-            number_of_loops = True
+            heartbeat = True
 
         try:
             return_to_finish = script["return_to_finish"]
