@@ -24,7 +24,7 @@ except ImportError:
           "C:\Python27\Scripts>pip2.7.exe install -r requirements.txt")
 
 from collections import namedtuple
-from datetime import datetime
+from datetime import datetime, timedelta
 from httplib import ResponseNotReady
 
 __all__ = ('ytvideos')
@@ -148,7 +148,6 @@ class ytvideos(object):
     def getVideoDescription(self, videoId):
         counter = 0
         while counter < 500:
-            print counter
             counter += 1
             try:
                 video_response = self.youtube.videos().list(
@@ -349,10 +348,10 @@ class ytvideos(object):
                 title = snippet["title"]
                 description = snippet["description"]
                 date = snippet["publishedAt"]
-                published = datetime.strptime(date, "%Y-%m-%dT%H:%M:%S.000Z")
+                date = datetime.strptime(date, "%Y-%m-%dT%H:%M:%S.000Z")
 
                 # Check if the video is older than the filter date
-                if published <= self.min_date:
+                if date <= self.min_date:
                     continue
 
                 # Check if video has already been processed
@@ -399,6 +398,10 @@ class ytvideos(object):
         self.youtube = self.initilize_youtube(self.set)
         self.records = {}
 
+        # Get 30 days ago to feed to youtube query
+        check_after = datetime.utcnow() - timedelta(days=30)
+        check_after = check_after.isoformat("T") + "Z"
+
         # When subscription count is large it's important to batch all the
         # HTTP requests together as 1 http request. This will break if
         # Channel list is > 1000 (to be fixed)
@@ -415,7 +418,7 @@ class ytvideos(object):
             batch.add(
                 self.youtube.search().list(
                     part='snippet', maxResults=50, channelId=channel_id,
-                    type='video', order='date', safeSearch='none'
+                    type='video', safeSearch='none', publishedAfter=check_after
                     )
                 )
 

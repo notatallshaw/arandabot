@@ -33,22 +33,19 @@ def arandabot(settings=None):
     # variable instantiation
     min_date = _getGlobalMinDate(settings=yt_settings)
 
-    # Login to and get playlists from YouTube
+    # Login to YouTube and get channel information
     yt = ytvideos.ytvideos(settings=yt_settings, no_older_than=min_date)
 
     # 0.95 and 0.5 are magic numbers based on anecdotal observations
     # of slow the YouTube API is
-    quota_cost = int(0.95*len(yt.channel_titles)*86400
-                     / (seconds_to_sleep + 0.5))*100
-
-    # Handle expected YouTube API quota cost
-    if quota_cost > 45000000:
-        print("WARNING: 50,000,000 is your maximum YouTube API daily quota"
-              " limit\nYour estimated maximum cost is: %s" %
-              "{:,}".format(quota_cost))
+    if script_settings.loop_forever:
+        estimated_quota_cost = int(0.95*len(yt.channel_titles)*86400
+                                   / (seconds_to_sleep + 0.5))*102
     else:
-        print("50,000,000 is your maximum YouTube API daily quota limit\n"
-              "Your estimated maximum cost is: %s" % "{:,}".format(quota_cost))
+        estimated_quota_cost = int(0.95*len(yt.channel_titles)*1440)*102
+
+    print("50,000,000 is your maximum YouTube API daily quota limit\n"
+          "{:,} is your estimated maximum cost".format(estimated_quota_cost))
 
     # Login in to reddit
     r = redditsubmissions.redditsubmissions(settings=reddit_settings)
@@ -69,8 +66,10 @@ def arandabot(settings=None):
                 print("%d videos already posted on Reddit" % duplicate_count)
 
             for YTid in sorted(yt.records, key=lambda k: yt.records[k].date):
-                r.submitContent(title=yt.records[YTid].title,
-                                link='https://www.youtube.com/watch?v='+YTid)
+                r.submitContent(
+                    title=yt.records[YTid].title.encode('ascii', 'ignore'),
+                    link='https://www.youtube.com/watch?v='+YTid
+                )
 
         min_date = datetime.today()
         time.sleep(seconds_to_sleep)
