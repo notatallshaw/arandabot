@@ -26,8 +26,41 @@ except ImportError:
 from collections import namedtuple
 from datetime import datetime
 from httplib import ResponseNotReady
+from traceback import print_exception
+
 
 __all__ = ('ytvideos')
+
+
+class httpContextRequest(object):
+    def __enter__(self):
+        self.status = None
+        return self
+
+    def __exit__(self, etype, value, traceback):
+        if etype is None:
+            self.status = "Success"
+            return True
+        if issubclass(etype, HttpError):
+            print("While getting subscriptions from YouTube an HTTP "
+                  " %d occurred:\n%s" % (value.resp.status, value.content))
+            time.sleep(15)
+        elif issubclass(etype, ResponseNotReady):
+            print("Got HTTP ResponseNotReady error when"
+                  "logging in to YouTube:\n%s" % value)
+            time.sleep(15)
+        elif issubclass(etype, httplib2.ServerNotFoundError):
+            print("The Google API seems to not be available at the"
+                  " moment with error:\n%s" % value)
+            time.sleep(60)
+        elif issubclass(etype, Exception):
+            print("Some unexpected exception with YouTube API:")
+            print_exception(etype, value, traceback)
+            print("Sleeping for 5 mins")
+            time.sleep(300)
+        else:
+            return False
+        return True
 
 
 class ytvideos(object):
@@ -107,29 +140,12 @@ class ytvideos(object):
         if credentials is None or credentials.invalid:
             credentials = run_flow(flow, storage, args)
 
-        counter = 0
-        while counter < 500:
-            counter += 1
-            try:
+        for _ in xrange(500):
+            with httpContextRequest() as request:
                 youtube = build(yt_api_service_name, yt_api_version,
                                 http=credentials.authorize(httplib2.Http()))
-            except HttpError, e:
-                print("While logging in to YouTubeaAn HTTP error"
-                      " %d occurred:\n%s" % (e.resp.status, e.content))
-                time.sleep(15)
-            except ResponseNotReady, e:
-                print("Got HTTP ResponseNotReady error when"
-                      " logging in to YouTube:\n%s" % e)
-                time.sleep(15)
-            except httplib2.ServerNotFoundError, e:
-                print("The Google API seems to not be available at the moment"
-                      " with error:\n%s" % e)
-                time.sleep(60)
-            except Exception, e:
-                print("Some unexpected exception happened when logging in to"
-                      " YouTube, sleeping for 15 mins:\n%s" % e)
-                time.sleep(900)
-            else:
+
+            if request.status == 'Success':
                 break
 
         return youtube
@@ -146,30 +162,13 @@ class ytvideos(object):
         return counter
 
     def getVideoDescription(self, videoId):
-        counter = 0
-        while counter < 500:
-            counter += 1
-            try:
+        for _ in xrange(500):
+            with httpContextRequest() as request:
                 video_response = self.youtube.videos().list(
                     id=videoId, part='snippet'
                     ).execute()
-            except HttpError, e:
-                print("While getting video details from YouTube an HTTP "
-                      " %d occurred:\n%s" % (e.resp.status, e.content))
-                time.sleep(15)
-            except ResponseNotReady, e:
-                print("While getting video detail got HTTP ResponseNotReady"
-                      " from YouTube:\n%s" % e)
-                time.sleep(15)
-            except httplib2.ServerNotFoundError, e:
-                print("The Google API seems to not be available at the"
-                      " moment with error:\n%s" % e)
-                time.sleep(60)
-            except Exception, e:
-                print("Some unexpected exception when getting video "
-                      "details from YouTube, sleeping for 5 mins:\n%s" % e)
-                time.sleep(300)
-            else:
+
+            if request.status == 'Success':
                 break
 
         return video_response["items"][0]["snippet"]["description"]
@@ -177,31 +176,13 @@ class ytvideos(object):
     def getUserAccountNameDetails(self):
         '''Get user playlists defined in the settings file'''
         for account in self.set.accounts:
-            counter = 0
-            while counter < 500:
-                counter += 1
-                try:
-                    channels_response = self.youtube.channels().list(
-                        forUsername=account, part='snippet'
-                        ).execute()
-                except HttpError, e:
-                    print("While getting subscriptions from YouTube an HTTP "
-                          " %d occurred:\n%s" % (e.resp.status, e.content))
-                    time.sleep(15)
-                except ResponseNotReady, e:
-                    print("Got HTTP ResponseNotReady error when"
-                          "logging in to YouTube:\n%s" % e)
-                    time.sleep(15)
-                except httplib2.ServerNotFoundError, e:
-                    print("The Google API seems to not be available at the"
-                          " moment with error:\n%s" % e)
-                    time.sleep(60)
-                except Exception, e:
-                    print("Some unexpected exception happened when logging"
-                          " in to YouTube, sleeping for 5 mins:\n%s" % e)
-                    time.sleep(300)
-                else:
-                    print("Got information for account: %s" % account)
+            for _ in xrange(500):
+                with httpContextRequest() as request:
+                        channels_response = self.youtube.channels().list(
+                            forUsername=account, part='snippet'
+                            ).execute()
+
+                if request.status == 'Success':
                     break
 
             try:
@@ -217,30 +198,13 @@ class ytvideos(object):
     def getUserAccountIdDetails(self):
         '''Get user playlists defined in the settings file'''
         for account in self.set.account_ids:
-            counter = 0
-            while counter < 500:
-                counter += 1
-                try:
+            for _ in xrange(500):
+                with httpContextRequest() as request:
                     channels_response = self.youtube.channels().list(
                         id=account, part='snippet'
                         ).execute()
-                except HttpError, e:
-                    print("While getting subscriptions from YouTube an HTTP "
-                          " %d occurred:\n%s" % (e.resp.status, e.content))
-                    time.sleep(15)
-                except ResponseNotReady, e:
-                    print("Got HTTP ResponseNotReady error when"
-                          "logging in to YouTube:\n%s" % e)
-                    time.sleep(15)
-                except httplib2.ServerNotFoundError, e:
-                    print("The Google API seems to not be available at the"
-                          " moment with error:\n%s" % e)
-                    time.sleep(60)
-                except Exception, e:
-                    print("Some unexpected exception happened when logging"
-                          " in to YouTube, sleeping for 5 mins:\n%s" % e)
-                    time.sleep(300)
-                else:
+
+                if request.status == 'Success':
                     break
 
             try:
@@ -260,31 +224,14 @@ class ytvideos(object):
         while True:
             channel_ids = []
             # Grab 1 page of results from YouTube
-            counter = 0
-            while counter < 500:
-                counter += 1
-                try:
+            for _ in xrange(500):
+                with httpContextRequest() as request:
                     subscriber_items = self.youtube.subscriptions().list(
                         mine=True, part="snippet", maxResults=50,
                         pageToken=nextPageToken
                         ).execute()
-                except HttpError, e:
-                    print("While getting subscriptions from YouTube an HTTP "
-                          " %d occurred:\n%s" % (e.resp.status, e.content))
-                    time.sleep(15)
-                except ResponseNotReady, e:
-                    print("Got HTTP ResponseNotReady error when"
-                          "logging in to YouTube:\n%s" % e)
-                    time.sleep(15)
-                except httplib2.ServerNotFoundError, e:
-                    print("The Google API seems to not be available at the"
-                          " moment with error:\n%s" % e)
-                    time.sleep(60)
-                except Exception, e:
-                    print("Some unexpected exception happened when logging"
-                          " in to YouTube, sleeping for 5 mins:\n%s" % e)
-                    time.sleep(300)
-                else:
+
+                if request.status == 'Success':
                     break
 
             for item in subscriber_items["items"]:
@@ -292,30 +239,13 @@ class ytvideos(object):
 
             # API only accepts at most 50 item IDs
             channels_by_comma = ",".join(channel_ids)
-            counter = 0
-            while counter < 500:
-                counter += 1
-                try:
+            for _ in xrange(500):
+                with httpContextRequest() as request:
                     channels_response = self.youtube.channels().list(
                         id=channels_by_comma, part='snippet'
                         ).execute()
-                except HttpError, e:
-                    print("While getting channel list from YouTube an HTTP"
-                          " %d occurred:\n%s" % (e.resp.status, e.content))
-                    time.sleep(15)
-                except ResponseNotReady, e:
-                    print("Got HTTP ResponseNotReady error when"
-                          " getting channel list from YouTube:\n%s" % e)
-                    time.sleep(15)
-                except httplib2.ServerNotFoundError, e:
-                    print("The Google API seems to not be available at the"
-                          " moment with error:\n%s" % e)
-                    time.sleep(60)
-                except Exception, e:
-                    print("Unexpected exception happened when getting channel"
-                          " list from YouTube, sleeping for 5 mins:\n%s" % e)
-                    time.sleep(300)
-                else:
+
+                if request.status == 'Success':
                     break
 
             try:
@@ -418,28 +348,12 @@ class ytvideos(object):
                     )
                 )
 
-        counter = 0
-        while counter < 500:
-            counter += 1
-            try:
+        for _ in xrange(500):
+            with httpContextRequest() as request:
                 batch.execute()
-            except HttpError, e:
-                print("While doing a batch request to YouTube HTTP Error"
-                      " %d occurred:\n%s" % (e.resp.status, e.content))
-                time.sleep(15)
-            except ResponseNotReady, e:
-                print("Got HTTP ResponseNotReady error when"
-                      " running a batch request against YouTube:\n%s" % e)
-                time.sleep(15)
-            except httplib2.ServerNotFoundError, e:
-                print("The Google API seems to not be available at the moment"
-                      " with error:\n%s" % e)
-                time.sleep(60)
-            except Exception, e:
-                print("Some unexpected exception happened when running a batch"
-                      " request against YouTube, sleeping for 5 mins:\n%s" % e)
-                time.sleep(300)
-            else:
+                raise ValueError
+
+            if request.status == 'Success':
                 break
 
         counter = 0
