@@ -24,7 +24,7 @@ except ImportError:
           "C:\Python27\Scripts>pip2.7.exe install -r requirements.txt")
 
 from collections import namedtuple
-from datetime import datetime
+from datetime import datetime, timedelta
 from httplib import ResponseNotReady
 from traceback import print_exception
 
@@ -42,16 +42,14 @@ class httpContextRequest(object):
             self.status = "Success"
             return True
         if issubclass(etype, HttpError):
-            print("While getting subscriptions from YouTube an HTTP "
-                  " %d occurred:\n%s" % (value.resp.status, value.content))
+            print("YouTube API returned HTTP %d : %s"
+                  % (value.resp.status, value.content))
             time.sleep(15)
         elif issubclass(etype, ResponseNotReady):
-            print("Got HTTP ResponseNotReady error when"
-                  "logging in to YouTube:\n%s" % value)
+            print("YouTube API returned HTTP ResponseNotReady: %s" % value)
             time.sleep(15)
         elif issubclass(etype, httplib2.ServerNotFoundError):
-            print("The Google API seems to not be available at the"
-                  " moment with error:\n%s" % value)
+            print("YouTube API returned not available: %s" % value)
             time.sleep(60)
         elif issubclass(etype, Exception):
             print("Some unexpected exception with YouTube API:")
@@ -67,7 +65,7 @@ class ytvideos(object):
     '''Class to get information about YouTube videos from specificied
     channels playlists'''
 
-    def __init__(self, settings=None, no_older_than=None):
+    def __init__(self, settings=None):
         '''Set some stuff up, including initially login to youtube to
         get required channel data. This tests if the credentials
         provided are correct and throws an exception if they are not'''
@@ -98,8 +96,6 @@ class ytvideos(object):
         if self.set.subscriptions:
             self.getSubscriptionUploadPlayLists()
         print('Successfully got channel information from YouTube')
-
-        self.min_date = no_older_than
 
     def initilize_youtube(self, settings):
         args = argparser.parse_args()
@@ -280,10 +276,6 @@ class ytvideos(object):
                 date = snippet["publishedAt"]
                 date = datetime.strptime(date, "%Y-%m-%dT%H:%M:%S.000Z")
 
-                # Check if the video is older than the filter date
-                if date <= self.min_date:
-                    continue
-
                 # Check if video has already been processed
                 if YTid in self.channel_videos[cid]:
                     continue
@@ -341,17 +333,19 @@ class ytvideos(object):
             # So instead search.list is used at great quota cost
             # Also since moving to batch we only get the last 50 results from
             # a channel, TO DO: collate nextPageTokens if require more than 50
+            check_after = (datetime.utcnow() -
+                           timedelta(days=self.set.days_uploaded_after))
+            check_after = check_after.isoformat("T") + "Z"
             batch.add(
                 self.youtube.search().list(
                     part='snippet', maxResults=50, channelId=channel_id,
-                    type='video', safeSearch='none', order='date'
+                    type='video', safeSearch='none', publishedAfter=check_after
                     )
                 )
 
         for _ in xrange(500):
             with httpContextRequest() as request:
                 batch.execute()
-                raise ValueError
 
             if request.status == 'Success':
                 break

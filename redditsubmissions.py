@@ -8,14 +8,13 @@ import time
 from re import sub
 from urlparse import urlparse, parse_qs
 from collections import namedtuple
-from datetime import datetime
 try:
     import praw
 except ImportError:
     print("Can't find reddit module praw please install. \n"
           "Please use the provided requirements.txt. \n"
           "On Windows this would look something like: \n"
-          "C:\Python27\Scripts>pip2.7.exe install -r requirements.txt")
+          "C:\Python27\Scripts\pip2.7.exe install -r requirements.txt")
     raise
 
 
@@ -49,7 +48,7 @@ class redditsubmissions(object):
         redditReccord = namedtuple('redditReccord', ["YTid", "date"])
         self.records[YTid] = redditReccord(YTid=YTid, date=date)
 
-    def getYouTubeURLs(self, no_older_than=None):
+    def getYouTubeURLs(self):
         counter = 0
         while counter < 100:
             counter += 1
@@ -70,7 +69,7 @@ class redditsubmissions(object):
             else:
                 break
 
-        for i, subm in enumerate(new_subreddit_links):
+        for subm in new_subreddit_links:
             submtup = urlparse(subm.url)
             domain = submtup.netloc.lower()
             if 'youtube' in domain:
@@ -86,14 +85,6 @@ class redditsubmissions(object):
                 self.appendYTPost(key, subm.created_utc)
             except:
                 pass
-
-            # Test if we don't need any more data from reddit at end of
-            # api "block", e.g api will throttle to 100 posts per 3 seconds
-            date_posted = datetime.utcfromtimestamp(subm.created_utc)
-            min_date = min(no_older_than, date_posted)
-            next_position_in_block = (i + 1) % self.set.praw_block_size
-            if next_position_in_block == 0 and no_older_than > min_date:
-                break
 
     def submitContent(self, title=None, link=None):
         """Submit a link to a subreddit."""

@@ -14,13 +14,6 @@ import redditsubmissions
 __all__ = ('arandabot')
 
 
-def _getGlobalMinDate(settings=None):
-    days_newer_than = settings.days_newer_than
-    global_min_date = datetime.today() - timedelta(days=days_newer_than)
-
-    return global_min_date
-
-
 def arandabot(settings=None):
     '''Arandabot is the main running of the bot'''
 
@@ -30,11 +23,8 @@ def arandabot(settings=None):
     reddit_settings = settings.reddit
     seconds_to_sleep = script_settings.seconds_to_sleep
 
-    # variable instantiation
-    min_date = _getGlobalMinDate(settings=yt_settings)
-
     # Login to YouTube and get channel information
-    yt = ytvideos.ytvideos(settings=yt_settings, no_older_than=min_date)
+    yt = ytvideos.ytvideos(settings=yt_settings)
 
     # 0.95 and 0.5 are magic numbers based on anecdotal observations
     # of slow the YouTube API is
@@ -61,7 +51,7 @@ def arandabot(settings=None):
 
         if yt.records:
             if script_settings.repost_protection:
-                r.getYouTubeURLs(no_older_than=min_date)
+                r.getYouTubeURLs()
                 duplicate_count = yt.delKeys(r.records)
                 print("%d videos already posted on Reddit" % duplicate_count)
 

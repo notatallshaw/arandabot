@@ -72,17 +72,24 @@ class botsettings(object):
         except KeyError:
             description_must_contain = None
 
+        try:
+            days_uploaded_after = youtube["days_uploaded_after"]
+        except KeyError:
+            days_uploaded_after = 15
+
         youtubesettings = namedtuple('youtubesettings',
                                      ["accounts", "days_newer_than",
                                       "account_ids", "subscriptions",
                                       "title_must_contain",
-                                      "description_must_contain"])
+                                      "description_must_contain",
+                                      "days_uploaded_after"])
 
         return youtubesettings(
             accounts=accounts, days_newer_than=days_newer_than,
             account_ids=account_ids, subscriptions=subscriptions,
             title_must_contain=title_must_contain,
-            description_must_contain=description_must_contain
+            description_must_contain=description_must_contain,
+            days_uploaded_after=days_uploaded_after
             )
 
     def redditsettings(self, settings):
