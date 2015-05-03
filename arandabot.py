@@ -6,7 +6,7 @@ description: |
     This module contains the main arandabot function that 
     queries Youtube and then posts to reddit.
 '''
-from __future__ import division, print_function, 
+from __future__ import division, print_function
 
 # Python standard modules
 import time
@@ -21,7 +21,7 @@ __all__ = ['arandabot']
 
 def arandabot(settings):
     '''Arandabot is the main running of the bot'''
-    
+
     # Get settings
     script_settings = settings.script
     yt_settings = settings.youtube
