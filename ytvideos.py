@@ -32,29 +32,37 @@ from traceback import print_exception
 __all__ = ('ytvideos')
 
 
-class httpContextRequest(object):
+class ytLoginManager(object):
+    def __init__(self, login_timer=None):
+        self.success = None
+        self.relogin = None
+        if login_timer:
+            n_hours_ago = datetime.utcnow() - timedelta(hours=6)
+            if login_timer < n_hours_ago:
+                self.relogin = True
+
     def __enter__(self):
-        self.status = None
         return self
 
     def __exit__(self, etype, value, traceback):
         if etype is None:
-            self.status = "Success"
-            return True
-        if issubclass(etype, HttpError):
-            print("YouTube API returned HTTP %d : %s"
-                  % (value.resp.status, value.content))
+            self.success = True
+        elif issubclass(etype, HttpError):
+            print("YouTube API returned HTTP %d : %s\nSleeping 15 seconds"
+                  % (value.resp.success, value.content))
             time.sleep(15)
         elif issubclass(etype, ResponseNotReady):
-            print("YouTube API returned HTTP ResponseNotReady: %s" % value)
+            print("YouTube API returned HTTP ResponseNotReady:\n%s"
+                  "\nSleeping 15 seconds" % value)
             time.sleep(15)
         elif issubclass(etype, httplib2.ServerNotFoundError):
-            print("YouTube API returned not available: %s" % value)
+            print("YouTube API returned not available:\n%s"
+                  "\nSleeping 60 seconds" % value)
             time.sleep(60)
         elif issubclass(etype, Exception):
-            print("Some unexpected exception with YouTube API:")
+            print("Some unexpected exception with YouTube API:\n")
             print_exception(etype, value, traceback)
-            print("Sleeping for 5 mins")
+            print("\nSleeping for 5 mins")
             time.sleep(300)
         else:
             return False
@@ -62,7 +70,7 @@ class httpContextRequest(object):
 
 
 class ytvideos(object):
-    '''Class to get information about YouTube videos from specificied
+    '''Class to get information about YouTube videos from specified
     channels playlists'''
 
     def __init__(self, settings=None):
@@ -70,6 +78,9 @@ class ytvideos(object):
         get required channel data. This tests if the credentials
         provided are correct and throws an exception if they are not'''
         self.set = settings
+
+        # If login was more than x hours ago, relogin
+        self.login_timer = datetime.utcnow()
 
         # This dictionary is a record of the new YouTube videos
         # It will map a YouTube video ID to a named tuple containing
@@ -98,6 +109,7 @@ class ytvideos(object):
         print('Successfully got channel information from YouTube')
 
     def initilize_youtube(self, settings):
+        self.login_timer = datetime.utcnow()
         args = argparser.parse_args()
         args.noauth_local_webserver = True
 
@@ -137,11 +149,11 @@ class ytvideos(object):
             credentials = run_flow(flow, storage, args)
 
         for _ in xrange(500):
-            with httpContextRequest() as request:
+            with ytLoginManager() as request:
                 youtube = build(yt_api_service_name, yt_api_version,
                                 http=credentials.authorize(httplib2.Http()))
 
-            if request.status == 'Success':
+            if request.success:
                 break
 
         return youtube
@@ -159,12 +171,15 @@ class ytvideos(object):
 
     def getVideoDescription(self, videoId):
         for _ in xrange(500):
-            with httpContextRequest() as request:
+            with ytLoginManager(self.login_timer) as request:
+                if request.relogin:
+                    self.youtube = self.initilize_youtube(self.set)
+
                 video_response = self.youtube.videos().list(
                     id=videoId, part='snippet'
                     ).execute()
 
-            if request.status == 'Success':
+            if request.success:
                 break
 
         return video_response["items"][0]["snippet"]["description"]
@@ -173,12 +188,15 @@ class ytvideos(object):
         '''Get user playlists defined in the settings file'''
         for account in self.set.accounts:
             for _ in xrange(500):
-                with httpContextRequest() as request:
-                        channels_response = self.youtube.channels().list(
-                            forUsername=account, part='snippet'
-                            ).execute()
+                with ytLoginManager(self.login_timer) as request:
+                    if request.relogin:
+                        self.youtube = self.initilize_youtube(self.set)
 
-                if request.status == 'Success':
+                    channels_response = self.youtube.channels().list(
+                        forUsername=account, part='snippet'
+                        ).execute()
+
+                if request.success:
                     break
 
             try:
@@ -195,12 +213,15 @@ class ytvideos(object):
         '''Get user playlists defined in the settings file'''
         for account in self.set.account_ids:
             for _ in xrange(500):
-                with httpContextRequest() as request:
+                with ytLoginManager(self.login_timer) as request:
+                    if request.relogin:
+                        self.youtube = self.initilize_youtube(self.set)
+
                     channels_response = self.youtube.channels().list(
                         id=account, part='snippet'
                         ).execute()
 
-                if request.status == 'Success':
+                if request.success:
                     break
 
             try:
@@ -221,13 +242,16 @@ class ytvideos(object):
             channel_ids = []
             # Grab 1 page of results from YouTube
             for _ in xrange(500):
-                with httpContextRequest() as request:
+                with ytLoginManager(self.login_timer) as request:
+                    if request.relogin:
+                        self.youtube = self.initilize_youtube(self.set)
+
                     subscriber_items = self.youtube.subscriptions().list(
                         mine=True, part="snippet", maxResults=50,
                         pageToken=nextPageToken
                         ).execute()
 
-                if request.status == 'Success':
+                if request.success:
                     break
 
             for item in subscriber_items["items"]:
@@ -236,12 +260,15 @@ class ytvideos(object):
             # API only accepts at most 50 item IDs
             channels_by_comma = ",".join(channel_ids)
             for _ in xrange(500):
-                with httpContextRequest() as request:
+                with ytLoginManager(self.login_timer) as request:
+                    if request.relogin:
+                        self.youtube = self.initilize_youtube(self.set)
+
                     channels_response = self.youtube.channels().list(
                         id=channels_by_comma, part='snippet'
                         ).execute()
 
-                if request.status == 'Success':
+                if request.success:
                     break
 
             try:
@@ -317,7 +344,6 @@ class ytvideos(object):
     def getNewestVideos(self):
         # Temporary fix to overcome oauth expiries, should only call once oauth
         # is expired (to be fixed)
-        self.youtube = self.initilize_youtube(self.set)
         self.records = {}
 
         # When subscription count is large it's important to batch all the
@@ -344,10 +370,13 @@ class ytvideos(object):
                 )
 
         for _ in xrange(500):
-            with httpContextRequest() as request:
+            with ytLoginManager(self.login_timer) as request:
+                if request.relogin:
+                    self.youtube = self.initilize_youtube(self.set)
+
                 batch.execute()
 
-            if request.status == 'Success':
+            if request.success:
                 break
 
         counter = 0

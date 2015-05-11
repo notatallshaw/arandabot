@@ -3,14 +3,13 @@ Created on 12 Jan 2015
 
 @author: Damian Shaw
 description: |
-    This module contains the main arandabot function that 
+    This module contains the main arandabot function that
     queries Youtube and then posts to reddit.
 '''
-from __future__ import division, print_function
 
 # Python standard modules
+from __future__ import division, print_function
 import time
-from datetime import datetime, timedelta
 
 # My modules
 import ytvideos
@@ -35,7 +34,7 @@ def arandabot(settings):
     # of how slow the YouTube API is.
     if script_settings.loop_forever:
         estimated_quota_cost = (0.95*len(yt.channel_titles)*86400
-                                   // (seconds_to_sleep + 0.5))*102
+                                // (seconds_to_sleep + 0.5))*102
     else:
         estimated_quota_cost = int(0.95*len(yt.channel_titles)*1440)*102
 
@@ -43,7 +42,7 @@ def arandabot(settings):
           "{0:,} is your estimated maximum cost".format(estimated_quota_cost))
 
     # Login in to reddit
-    r = redditsubmissions.redditsubmissions(settings=reddit_settings)
+    reddit = redditsubmissions.redditsubmissions(settings=reddit_settings)
 
     # script logic
     loop_number = script_settings.number_of_loops
@@ -56,12 +55,13 @@ def arandabot(settings):
 
         if yt.records:
             if script_settings.repost_protection:
-                r.getYouTubeURLs()
-                duplicate_count = yt.delKeys(r.records)
-                print("{0} videos already posted on Reddit".format(duplicate_count))
+                reddit.getYouTubeURLs()
+                duplicate_count = yt.delKeys(reddit.records)
+                print("{0} videos already posted on Reddit"
+                      "".format(duplicate_count))
 
             for YTid in sorted(yt.records, key=lambda k: yt.records[k].date):
-                r.submitContent(
+                reddit.submitContent(
                     title=yt.records[YTid].title.encode('ascii', 'ignore'),
                     link='https://www.youtube.com/watch?v=' + YTid
                 )
