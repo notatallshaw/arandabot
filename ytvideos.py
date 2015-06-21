@@ -89,9 +89,10 @@ class ytvideos(object):
         self.records = {}
         self.record = namedtuple('record', ['title', 'date'])
 
-        # FIFO queue used by callbacks to temporary store video info
+        # FIFO queues used by callbacks to temporary store video info
         # before upload, youtubeId needs to be held alongside
-        self.q = Queue.Queue()
+        self.recq = Queue.Queue()
+        self.descq = Queue.Queue()
 
         # Login to YouTube using the Google provided API
         self.youtube = self.initilize_youtube(settings)
@@ -327,14 +328,14 @@ class ytvideos(object):
                     if desc_contain not in check_desc:
                         # The description field is truncated, we need to do a
                         # lookup on that video details to confirm it's really
-                        # Not in the description
-                        ful_desc = self.getVideoDescription(YTid)
-                        check_ful_desc = re.sub('[\W_]+', '', ful_desc).lower()
-                        if desc_contain not in check_ful_desc:
-                            continue
+                        # Not in the description, put in to queue now as
+                        # httplib is not thread safe
+                        self.descq.put([YTid, cid, desc_contain,
+                                        self.record(title=title, date=date)])
+                        continue
 
                 number_of_new_videos += 1
-                self.q.put([YTid, cid, self.record(title=title, date=date)])
+                self.recq.put([YTid, cid, self.record(title=title, date=date)])
 
             if number_of_new_videos:
                 print("Got %d new videos from channel: %s" %
@@ -378,10 +379,20 @@ class ytvideos(object):
             if request.success:
                 break
 
-        counter = 0
-        while not self.q.empty():
+        while not self.recq.empty():
             try:
-                [YTid, cid, record] = self.q.get()
+                [YTid, cid, desc_contain, record] = self.descq.get()
+                ful_desc = self.getVideoDescription(YTid)
+                check_ful_desc = re.sub('[\W_]+', '', ful_desc).lower()
+                if desc_contain in check_ful_desc:
+                    self.recq.put([YTid, cid, record])
+            except:
+                break
+
+        counter = 0
+        while not self.recq.empty():
+            try:
+                [YTid, cid, record] = self.recq.get()
                 self.records[YTid] = record
                 self.channel_videos[cid].append(YTid)
                 counter += 1
