@@ -334,8 +334,7 @@ class ytvideos(object):
                             continue
 
                 number_of_new_videos += 1
-                self.q.put([YTid, self.record(title=title, date=date)])
-                self.channel_videos[cid].append(YTid)
+                self.q.put([YTid, cid, self.record(title=title, date=date)])
 
             if number_of_new_videos:
                 print("Got %d new videos from channel: %s" %
@@ -382,8 +381,9 @@ class ytvideos(object):
         counter = 0
         while not self.q.empty():
             try:
-                [YTid, record] = self.q.get()
+                [YTid, cid, record] = self.q.get()
                 self.records[YTid] = record
+                self.channel_videos[cid].append(YTid)
                 counter += 1
             except:
                 break
