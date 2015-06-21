@@ -379,15 +379,15 @@ class ytvideos(object):
             if request.success:
                 break
 
-        while not self.recq.empty():
+        while not self.descq.empty():
             try:
                 [YTid, cid, desc_contain, record] = self.descq.get()
                 ful_desc = self.getVideoDescription(YTid)
                 check_ful_desc = re.sub('[\W_]+', '', ful_desc).lower()
                 if desc_contain in check_ful_desc:
                     self.recq.put([YTid, cid, record])
-            except:
-                break
+            except Exception:
+                continue
 
         counter = 0
         while not self.recq.empty():
@@ -396,7 +396,7 @@ class ytvideos(object):
                 self.records[YTid] = record
                 self.channel_videos[cid].append(YTid)
                 counter += 1
-            except:
-                break
+            except Exception:
+                continue
 
         return counter
