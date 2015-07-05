@@ -39,8 +39,9 @@ class redditLoginManager(object):
         if etype is None:
             self.success = True
         elif issubclass(etype, praw.errors.HTTPException):
-            print("{}: Reddit API returned HTTP : {}"
-                  "".format(time.strftime('%x %X %z'), value))
+            print("{}: Reddit API returned {} : {}"
+                  "".format(time.strftime('%x %X %z'), etype, value))
+            print("Sleeping for 15 seconds and trying again")
             time.sleep(15)
         else:
             print("Failed to login to reddit")
