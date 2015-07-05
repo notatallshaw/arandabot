@@ -10,6 +10,7 @@ to spot bug in calling the oauth modules that was stopping me from publishing
 import arandabot
 import botsettings
 import time
+import traceback
 
 
 def main():
@@ -21,15 +22,17 @@ def main():
         except ImportError:
             print("Import Error")
             break
-        except Exception, e:
-            print("Some unexpected exception occured in arandabot"
-                  " backing off for 5 mins and trying again:\n%s" % e)
+        except Exception as e:
+            print("{} Some unexpected exception occurred in arandabot "
+                  "backing off for 5 mins and trying again:"
+                  " {}".format(time.strftime('%x %X %z'), e))
+            traceback.print_exc()
             time.sleep(300)
         else:
             break
 
     if settings.script.return_to_finish:
-        raw_input("Press return to finish script")
+        input("Press return to finish script")
 
 if __name__ == '__main__':
     main()

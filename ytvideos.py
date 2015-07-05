@@ -5,7 +5,7 @@ Created on 12 Jan 2015
 '''
 
 import os
-import Queue
+import queue
 import time
 import re
 
@@ -25,7 +25,6 @@ except ImportError:
 
 from collections import namedtuple
 from datetime import datetime, timedelta
-from httplib import ResponseNotReady
 from traceback import print_exception
 
 
@@ -48,16 +47,12 @@ class ytLoginManager(object):
         if etype is None:
             self.success = True
         elif issubclass(etype, HttpError):
-            print("YouTube API returned HTTP %d : %s\nSleeping 15 seconds"
-                  % (value.resp.success, value.content))
-            time.sleep(15)
-        elif issubclass(etype, ResponseNotReady):
-            print("YouTube API returned HTTP ResponseNotReady:\n%s"
-                  "\nSleeping 15 seconds" % value)
+            print("YouTube API returned HTTP {} : {}\n Sleeping 15"
+                  "seconds".formaat(value.resp.success, value.content))
             time.sleep(15)
         elif issubclass(etype, httplib2.ServerNotFoundError):
-            print("YouTube API returned not available:\n%s"
-                  "\nSleeping 60 seconds" % value)
+            print("YouTube API returned not available:\n{}"
+                  "\nSleeping 60 seconds".format(value))
             time.sleep(60)
         elif issubclass(etype, Exception):
             print("Some unexpected exception with YouTube API:\n")
@@ -91,8 +86,8 @@ class ytvideos(object):
 
         # FIFO queues used by callbacks to temporary store video info
         # before upload, youtubeId needs to be held alongside
-        self.recq = Queue.Queue()
-        self.descq = Queue.Queue()
+        self.recq = queue.Queue()
+        self.descq = queue.Queue()
 
         # Login to YouTube using the Google provided API
         self.youtube = self.initilize_youtube(settings)
@@ -149,7 +144,7 @@ class ytvideos(object):
         if credentials is None or credentials.invalid:
             credentials = run_flow(flow, storage, args)
 
-        for _ in xrange(500):
+        for _ in range(500):
             with ytLoginManager() as request:
                 youtube = build(yt_api_service_name, yt_api_version,
                                 http=credentials.authorize(httplib2.Http()))
@@ -171,7 +166,7 @@ class ytvideos(object):
         return counter
 
     def getVideoDescription(self, videoId):
-        for _ in xrange(500):
+        for _ in range(500):
             with ytLoginManager(self.login_timer) as request:
                 if request.relogin:
                     self.youtube = self.initilize_youtube(self.set)
@@ -188,7 +183,7 @@ class ytvideos(object):
     def getUserAccountNameDetails(self):
         '''Get user playlists defined in the settings file'''
         for account in self.set.accounts:
-            for _ in xrange(500):
+            for _ in range(500):
                 with ytLoginManager(self.login_timer) as request:
                     if request.relogin:
                         self.youtube = self.initilize_youtube(self.set)
@@ -213,7 +208,7 @@ class ytvideos(object):
     def getUserAccountIdDetails(self):
         '''Get user playlists defined in the settings file'''
         for account in self.set.account_ids:
-            for _ in xrange(500):
+            for _ in range(500):
                 with ytLoginManager(self.login_timer) as request:
                     if request.relogin:
                         self.youtube = self.initilize_youtube(self.set)
@@ -229,12 +224,12 @@ class ytvideos(object):
                 for item in channels_response['items']:
                     channel_id = item["id"]
                     title = item["snippet"]["title"]
-                    print("Got information for account: %s" % title)
+                    print("Got information for account: {}".format(title))
                     self.channel_titles[channel_id] = title
                     self.channel_videos[channel_id] = []
             except KeyError:
-                print("There were no channels in the youtube account %s"
-                      % self.channel_titles[account])
+                print("There were no channels in the youtube account {}"
+                      "".format(self.channel_titles[account]))
 
     def getSubscriptionUploadPlayLists(self):
         # Get playlists from the users subscribed channels
@@ -242,7 +237,7 @@ class ytvideos(object):
         while True:
             channel_ids = []
             # Grab 1 page of results from YouTube
-            for _ in xrange(500):
+            for _ in range(500):
                 with ytLoginManager(self.login_timer) as request:
                     if request.relogin:
                         self.youtube = self.initilize_youtube(self.set)
@@ -260,7 +255,7 @@ class ytvideos(object):
 
             # API only accepts at most 50 item IDs
             channels_by_comma = ",".join(channel_ids)
-            for _ in xrange(500):
+            for _ in range(500):
                 with ytLoginManager(self.login_timer) as request:
                     if request.relogin:
                         self.youtube = self.initilize_youtube(self.set)
@@ -278,7 +273,8 @@ class ytvideos(object):
                     title = item["snippet"]["title"]
                     self.channel_titles[channel_id] = title
                     self.channel_videos[channel_id] = []
-                    print("From subscriptions adding channel: %s" % title)
+                    print("From subscriptions adding channel: {}"
+                          "".format(title))
             except KeyError:
                 # This Channel was already defined by the user
                 pass
@@ -338,8 +334,10 @@ class ytvideos(object):
                 self.recq.put([YTid, cid, self.record(title=title, date=date)])
 
             if number_of_new_videos:
-                print("Got %d new videos from channel: %s" %
-                      (number_of_new_videos, self.channel_titles[cid]))
+                print("{}: Got {} new videos from channel: {}"
+                      "".format(time.strftime('%x %X %z'),
+                                number_of_new_videos,
+                                self.channel_titles[cid]))
 
     def getNewestVideos(self):
         # Temporary fix to overcome oauth expiries, should only call once oauth
@@ -369,7 +367,7 @@ class ytvideos(object):
                     )
                 )
 
-        for _ in xrange(500):
+        for _ in range(500):
             with ytLoginManager(self.login_timer) as request:
                 if request.relogin:
                     self.youtube = self.initilize_youtube(self.set)

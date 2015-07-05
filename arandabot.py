@@ -39,7 +39,7 @@ def arandabot(settings):
         estimated_quota_cost = int(0.95*len(yt.channel_titles)*1440)*102
 
     print("50,000,000 is your maximum YouTube API daily quota limit\n"
-          "{0:,} is your estimated maximum cost".format(estimated_quota_cost))
+          "{:,} is your estimated maximum cost".format(estimated_quota_cost))
 
     # Login in to reddit
     reddit = redditsubmissions.redditsubmissions(settings=reddit_settings)
@@ -51,18 +51,19 @@ def arandabot(settings):
 
         number_yt_videos = yt.getNewestVideos()
         if number_yt_videos or script_settings.heartbeat:
-            print("{0} new YouTube videos found".format(number_yt_videos))
+            print("{}: {} new YouTube videos found"
+                  "".format(time.strftime('%x %X %z'), number_yt_videos))
 
         if yt.records:
             if script_settings.repost_protection:
                 reddit.getYouTubeURLs()
                 duplicate_count = yt.delKeys(reddit.records)
-                print("{0} videos already posted on Reddit"
-                      "".format(duplicate_count))
+                print("{}: {} videos already posted on Reddit"
+                      "".format(time.strftime('%x %X %z'), duplicate_count))
 
             for YTid in sorted(yt.records, key=lambda k: yt.records[k].date):
                 reddit.submitContent(
-                    title=yt.records[YTid].title.encode('ascii', 'ignore'),
+                    title=yt.records[YTid].title,
                     link='https://www.youtube.com/watch?v=' + YTid
                 )
 

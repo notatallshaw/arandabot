@@ -16,7 +16,7 @@ class botsettings(object):
         self.script = self.scriptSettings(settings)
 
     def loadsettingsfromfile(self, settingsFile):
-        with open(settingsFile, "rU") as f:
+        with open(settingsFile, "r") as f:
             try:
                 settingStr = f.read()
             except IOError:
@@ -100,32 +100,10 @@ class botsettings(object):
             raise
 
         try:
-            username = reddit["username"]
-        except KeyError:
-            print("There is no 'username' listed in the reddit settings")
-            raise
-        else:
-            if not username:
-                print("Need a valid username / password to login to reddit in"
-                      " settings.json file")
-                raise(ValueError)
-
-        try:
-            password = reddit["password"]
-        except KeyError:
-            print("There is no 'password' listed in the reddit settings")
-            raise
-
-        try:
             subreddit = reddit["subreddit"]
         except KeyError:
             print("There is no 'subreddit' listed in the reddit settings")
             raise
-        else:
-            if not username:
-                print("Need a valid username / password to login to reddit in"
-                      " settings.json file")
-                raise(ValueError)
 
         try:
             ua = reddit["ua"]
@@ -138,12 +116,9 @@ class botsettings(object):
             praw_block_size = 100
 
         redditsettings = namedtuple('redditsettings',
-                                    ["username", "password", "subreddit",
-                                     "ua", "praw_block_size"])
+                                    ["subreddit", "ua", "praw_block_size"])
 
-        return redditsettings(username=username,
-                              password=password,
-                              subreddit=subreddit,
+        return redditsettings(subreddit=subreddit,
                               ua=ua,
                               praw_block_size=praw_block_size)
 

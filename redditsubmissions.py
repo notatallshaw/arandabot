@@ -6,18 +6,19 @@ Created on 13 Jan 2015
 
 import time
 from re import sub
-from urlparse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs
 from collections import namedtuple
 from datetime import datetime, timedelta
 from traceback import print_exception
 
 try:
     import praw
+    import OAuth2Util
 except ImportError:
     print("Can't find reddit module praw please install. \n"
           "Please use the provided requirements.txt. \n"
           "On Windows this would look something like: \n"
-          "C:\Python27\Scripts\pip2.7.exe install -r requirements.txt")
+          "C:\Python34\Scripts\pip3.4.exe install -r requirements.txt")
     raise
 
 
@@ -26,7 +27,8 @@ class redditLoginManager(object):
         self.success = None
         self.relogin = None
         if login_timer:
-            n_hours_ago = datetime.utcnow() - timedelta(hours=6)
+            # The Oauth token needs to be refreshed once an hour
+            n_hours_ago = datetime.utcnow() - timedelta(hours=1)
             if login_timer < n_hours_ago:
                 self.relogin = True
 
@@ -36,13 +38,10 @@ class redditLoginManager(object):
     def __exit__(self, etype, value, traceback):
         if etype is None:
             self.success = True
-        elif issubclass(etype, praw.requests.exceptions.HTTPError):
-            print("Reddit API returned HTTP : %s" % (value))
+        elif issubclass(etype, praw.errors.HTTPException):
+            print("{}: Reddit API returned HTTP : {}"
+                  "".format(time.strftime('%x %X %z'), value))
             time.sleep(15)
-        elif issubclass(etype, praw.requests.exceptions.ConnectionError):
-            print("Reddit connection error %s, backing off for 1 min:\n"
-                  "%s" % (etype, value))
-            time.sleep(60)
         else:
             print("Failed to login to reddit")
             print_exception(etype, value, traceback)
@@ -52,25 +51,19 @@ class redditLoginManager(object):
 
 class redditsubmissions(object):
     def __init__(self, settings):
-        # If login was more than x hours ago, relogin
         self.login_timer = datetime.utcnow()
         self.records = {}
         self.set = settings
-        self.subreddit = self.initializeReddit()
+        self.login_timer = datetime.utcnow()
+        self.reddit = praw.Reddit(user_agent=self.set.ua)
+        self.oauth2 = OAuth2Util.OAuth2Util(self.reddit)
+        self.subreddit = self.reddit.get_subreddit(self.set.subreddit)
 
-    def initializeReddit(self):
+    def refreshRedditLogin(self):
         """Get a reference to Reddit."""
         self.login_timer = datetime.utcnow()
-        r = praw.Reddit(user_agent=self.set.ua)
-
-        for _ in xrange(10):
-            with redditLoginManager() as request:
-                r.login(self.set.username, self.set.password)
-
-            if request.success:
-                break
-
-        return r.get_subreddit(self.set.subreddit)
+        self.oauth2.refresh()
+        self.subreddit = self.reddit.get_subreddit(self.set.subreddit)
 
     def appendYTPost(self, YTid=None, date=None):
         """Add to a collection of YouTube Posts made in this subreddit"""
@@ -78,10 +71,10 @@ class redditsubmissions(object):
         self.records[YTid] = redditReccord(YTid=YTid, date=date)
 
     def getYouTubeURLs(self):
-        for _ in xrange(100):
+        for _ in range(100):
             with redditLoginManager(self.login_timer) as request:
                 if request.relogin:
-                    self.subreddit = self.initializeReddit()
+                    self.subreddit = self.refreshRedditLogin()
 
                 new_subreddit_links = self.subreddit.get_new(limit=None)
 
@@ -107,29 +100,31 @@ class redditsubmissions(object):
 
     def submitContent(self, title=None, link=None):
         """Submit a link to a subreddit."""
-        for _ in xrange(10):
+        for _ in range(10):
             with redditLoginManager(self.login_timer) as request:
                 if request.relogin:
-                    self.subreddit = self.initializeReddit()
+                    self.subreddit = self.refreshRedditLogin()
 
                 self.subreddit.submit(title, url=link)
 
             if request.success:
-                print("Successfully submitted to reddit: %s" % title)
+                print("{}: Successfully submitted to reddit: {}"
+                      "".format(time.strftime('%x %X %z'), title))
                 break
 
     def deleteAllPosts(self):
-        for _ in xrange(100):
+        for _ in range(100):
             with redditLoginManager(self.login_timer) as request:
                 if request.relogin:
-                    self.subreddit = self.initializeReddit()
+                    self.subreddit = self.refreshRedditLogin()
 
                 new_subreddit_links = self.subreddit.get_new(limit=None)
                 for submission in new_subreddit_links:
                     submission.delete()
 
             if request.success:
-                print("Succeeded deleting: %s" % submission)
+                print("{}: Succeeded deleting: {}"
+                      "".format(time.strftime('%x %X %z'), submission))
                 break
 
         print("Done!")

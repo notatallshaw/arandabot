@@ -1,0 +1,11 @@
+# Config
+scope=identity,account,edit,flair,history,read,submit
+refreshable=True
+
+# Appinfo
+app_key=
+app_secret=
+
+# Token
+token=None
+refresh_token=None
