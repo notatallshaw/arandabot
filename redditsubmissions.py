@@ -5,6 +5,7 @@ Created on 13 Jan 2015
 '''
 
 import time
+import requests.exceptions
 from re import sub
 from urllib.parse import urlparse, parse_qs
 from collections import namedtuple
@@ -43,8 +44,13 @@ class redditLoginManager(object):
                   "".format(time.strftime('%x %X %z'), etype, value))
             print("Sleeping for 15 seconds and trying again")
             time.sleep(15)
+        elif issubclass(etype, requests.exceptions.ReadTimeout):
+            print("{}: Requests returned {} : {}"
+                  "".format(time.strftime('%x %X %z'), etype, value))
+            print("Sleeping for 15 seconds and trying again")
+            time.sleep(15)
         else:
-            print("Failed to login to reddit")
+            print("Some unhandled exception connecting to Reddit")
             print_exception(etype, value, traceback)
             return False
         return True
