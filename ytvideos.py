@@ -28,7 +28,7 @@ from datetime import datetime, timedelta
 from traceback import print_exception
 
 
-__all__ = ('ytvideos')
+__all__ = ['ytvideos']
 
 
 class ytLoginManager(object):
@@ -48,7 +48,7 @@ class ytLoginManager(object):
             self.success = True
         elif issubclass(etype, HttpError):
             print("YouTube API returned HTTP {} : {}\n Sleeping 15"
-                  "seconds".formaat(value.resp.success, value.content))
+                  "seconds".format(value.resp.success, value.content))
             time.sleep(15)
         elif issubclass(etype, httplib2.ServerNotFoundError):
             print("YouTube API returned not available:\n{}"
