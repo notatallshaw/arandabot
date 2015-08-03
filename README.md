@@ -22,6 +22,7 @@ To get this bot working, do the following:
 4. Get Reddit client id and secrets:
   * Go to https://www.reddit.com/prefs/apps/
   * Create an application which is a "script"
+  * You'll need to set the "redirect uri" to "http://127.0.0.1:65010/authorize_callback"
   * Under your app name you will see "personal use script" and under that is your client id
   * Take your client id and secret and put them under # Appinfo in oauth.txt under "App info"
 
