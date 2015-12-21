@@ -12,7 +12,6 @@ import botsettings
 import time
 import traceback
 
-
 def main():
     settings = botsettings.botsettings()
 

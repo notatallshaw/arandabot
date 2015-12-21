@@ -20,8 +20,7 @@ try:
 except ImportError:
     print("Can't find google-api-python-client please install. \n"
           "Please use the provided requirements.txt. \n"
-          "On Windows this would look something like: \n"
-          "C:\Python27\Scripts>pip2.7.exe install -r requirements.txt")
+          "python -m pip install -r requirements.txt")
 
 from collections import namedtuple
 from datetime import datetime, timedelta

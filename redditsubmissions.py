@@ -17,9 +17,8 @@ try:
     import OAuth2Util
 except ImportError:
     print("Can't find reddit module praw please install. \n"
-          "Please use the provided requirements.txt. \n"
-          "On Windows this would look something like: \n"
-          "C:\Python34\Scripts\pip3.4.exe install -r requirements.txt")
+          "Please use the provided requirements.txt. e.g: \n"
+          "python -m pip install -r requirements.txt")
     raise
 
 
@@ -39,6 +38,10 @@ class redditLoginManager(object):
     def __exit__(self, etype, value, traceback):
         if etype is None:
             self.success = True
+        elif issubclass(etype, praw.errors.AlreadySubmitted):
+            self.success = True
+            print("{}: Reddit API returned {} : {}"
+                  "".format(time.strftime('%x %X %z'), etype, value))
         elif issubclass(etype, praw.errors.HTTPException):
             print("{}: Reddit API returned {} : {}"
                   "".format(time.strftime('%x %X %z'), etype, value))
@@ -64,13 +67,14 @@ class redditsubmissions(object):
         self.login_timer = datetime.utcnow()
         self.reddit = praw.Reddit(user_agent=self.set.ua)
         self.oauth2 = OAuth2Util.OAuth2Util(self.reddit)
-        self.subreddit = self.reddit.get_subreddit(self.set.subreddit)
+        
+    def getSubreddit(self):
+        return self.reddit.get_subreddit(self.set.subreddit)
 
     def refreshRedditLogin(self):
         """Get a reference to Reddit."""
         self.login_timer = datetime.utcnow()
         self.oauth2.refresh()
-        self.subreddit = self.reddit.get_subreddit(self.set.subreddit)
 
     def appendYTPost(self, YTid=None, date=None):
         """Add to a collection of YouTube Posts made in this subreddit"""
@@ -81,9 +85,9 @@ class redditsubmissions(object):
         for _ in range(100):
             with redditLoginManager(self.login_timer) as request:
                 if request.relogin:
-                    self.subreddit = self.refreshRedditLogin()
+                    self.refreshRedditLogin()
 
-                new_subreddit_links = self.subreddit.get_new(limit=None)
+                new_subreddit_links = self.getSubreddit().get_new(limit=None)
 
             if request.success:
                 break
@@ -110,9 +114,9 @@ class redditsubmissions(object):
         for _ in range(10):
             with redditLoginManager(self.login_timer) as request:
                 if request.relogin:
-                    self.subreddit = self.refreshRedditLogin()
+                    self.refreshRedditLogin()
 
-                self.subreddit.submit(title, url=link)
+                self.getSubreddit().submit(title, url=link)
 
             if request.success:
                 print("{}: Successfully submitted to reddit: {}"
@@ -123,9 +127,9 @@ class redditsubmissions(object):
         for _ in range(100):
             with redditLoginManager(self.login_timer) as request:
                 if request.relogin:
-                    self.subreddit = self.refreshRedditLogin()
+                    self.refreshRedditLogin()
 
-                new_subreddit_links = self.subreddit.get_new(limit=None)
+                new_subreddit_links = self.getSubreddit().get_new(limit=None)
                 for submission in new_subreddit_links:
                     submission.delete()
 
